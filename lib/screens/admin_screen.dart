@@ -1,0 +1,538 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../models/inspection_record.dart';
+import '../data/master_data.dart';
+import '../services/database_service.dart';
+import '../services/cloud_sync_service.dart';
+import 'record_detail_screen.dart';
+import 'excel_export_dialog.dart';
+
+class AdminScreen extends StatefulWidget {
+  const AdminScreen({super.key});
+
+  @override
+  State<AdminScreen> createState() => _AdminScreenState();
+}
+
+class _AdminScreenState extends State<AdminScreen> {
+  List<InspectionRecord> _records = [];
+  List<InspectionRecord> _filteredRecords = [];
+  String? _filterSite;
+  String? _filterMachineType;
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
+
+  @override
+  void initState() {
+    super.initState();
+    // 画面描画後にデータをロード
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRecords();
+    });
+  }
+
+  Future<void> _loadRecords() async {
+    try {
+      // まずクラウドから同期
+      final cloudSync = CloudSyncService();
+      await cloudSync.syncAllData();
+      print('✅ Cloud sync completed');
+      
+      // ローカルデータを取得
+      final records = DatabaseService.getAllRecords();
+      print('✅ Admin screen loaded ${records.length} records');
+      
+      setState(() {
+        _records = records;
+        if (_records.isNotEmpty) {
+          print('✅ Sample record: ${_records.first.siteName}, ${_records.first.machineType}');
+        }
+        _records.sort((a, b) => b.inspectionDate.compareTo(a.inspectionDate));
+        _applyFilters();
+        print('✅ After filter: ${_filteredRecords.length} records');
+        if (_filteredRecords.isNotEmpty) {
+          print('✅ Sample filtered record: ${_filteredRecords.first.siteName}');
+        }
+      });
+    } catch (e) {
+      // データ取得エラー時は空リストを使用
+      print('❌ Failed to load records: $e');
+      setState(() {
+        _records = [];
+        _applyFilters();
+      });
+    }
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _filteredRecords = _records.where((record) {
+        // 現場フィルタ
+        if (_filterSite != null && record.siteName != _filterSite) {
+          return false;
+        }
+
+        // 重機種類フィルタ
+        if (_filterMachineType != null &&
+            record.machineType != _filterMachineType) {
+          return false;
+        }
+
+        // 日付範囲フィルタ
+        if (_filterStartDate != null &&
+            record.inspectionDate.isBefore(_filterStartDate!)) {
+          return false;
+        }
+        if (_filterEndDate != null &&
+            record.inspectionDate.isAfter(_filterEndDate!)) {
+          return false;
+        }
+
+        return true;
+      }).toList();
+    });
+  }
+
+  Future<void> _selectDateRange() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDateRange: _filterStartDate != null && _filterEndDate != null
+          ? DateTimeRange(start: _filterStartDate!, end: _filterEndDate!)
+          : null,
+    );
+
+    if (picked != null) {
+      setState(() {
+        _filterStartDate = picked.start;
+        _filterEndDate = picked.end;
+        _applyFilters();
+      });
+    }
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _filterSite = null;
+      _filterMachineType = null;
+      _filterStartDate = null;
+      _filterEndDate = null;
+      _applyFilters();
+    });
+  }
+
+  String _getStatusSummary(InspectionRecord record) {
+    final total = record.results.length;
+    final good = record.results.values.where((r) => r.isGood).length;
+    final bad = total - good;
+    return '⚪:$good / ×:$bad';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormat = DateFormat('yyyy/MM/dd');
+    final machineTypes = _records.map((r) => r.machineType).toSet().toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('管理画面'),
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          // フィルタセクション
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Theme.of(context).primaryColor,
+            child: Column(
+              children: [
+                // 現場フィルタ
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: '現場',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('すべて'),
+                          ),
+                          ...MasterData.sites.map((site) => DropdownMenuItem(
+                                value: site,
+                                child: Text(
+                                  site,
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _filterSite = value;
+                            _applyFilters();
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: '重機種類',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('すべて'),
+                          ),
+                          ...machineTypes.map((type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(type),
+                              )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _filterMachineType = value;
+                            _applyFilters();
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _selectDateRange,
+                        icon: const Icon(Icons.date_range),
+                        label: Text(
+                          _filterStartDate != null
+                              ? '期間: ${DateFormat('MM/dd').format(_filterStartDate!)} - ${DateFormat('MM/dd').format(_filterEndDate!)}'
+                              : '期間を選択',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_filterSite != null ||
+                    _filterMachineType != null ||
+                    _filterStartDate != null) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _clearFilters,
+                      icon: const Icon(Icons.clear),
+                      label: const Text('フィルタをクリア'),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // 統計情報
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.grey.shade100,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatCard(
+                  '総件数',
+                  _filteredRecords.length.toString(),
+                  Icons.list_alt,
+                  Colors.blue,
+                ),
+                _buildStatCard(
+                  '今月',
+                  _filteredRecords
+                      .where((r) =>
+                          r.inspectionDate.month == DateTime.now().month &&
+                          r.inspectionDate.year == DateTime.now().year)
+                      .length
+                      .toString(),
+                  Icons.calendar_today,
+                  Colors.green,
+                ),
+                _buildStatCard(
+                  '今日',
+                  _filteredRecords
+                      .where((r) =>
+                          r.inspectionDate.day == DateTime.now().day &&
+                          r.inspectionDate.month == DateTime.now().month &&
+                          r.inspectionDate.year == DateTime.now().year)
+                      .length
+                      .toString(),
+                  Icons.today,
+                  Colors.orange,
+                ),
+              ],
+            ),
+          ),
+
+          // 記録リスト
+          Expanded(
+            child: _filteredRecords.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.inbox,
+                          size: 64,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _records.isEmpty
+                              ? '点検記録がありません\n\n点検を実施してデータを作成してください'
+                              : 'フィルタ条件に一致する記録がありません',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _loadRecords,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('再読み込み'),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _filteredRecords.length,
+                    itemBuilder: (context, index) {
+                      final record = _filteredRecords[index];
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Material(
+                          elevation: 2,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      RecordDetailScreen(record: record),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade100,
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          record.machineType,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blue.shade900,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        record.machineUnitNumber,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade100,
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          _getStatusSummary(record),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green.shade900,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.person,
+                                        size: 16,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        record.inspectorName,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Icon(
+                                        Icons.access_time,
+                                        size: 16,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        dateFormat.format(record.inspectionDate),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            onPressed: () {
+              // データを再読み込み
+              _loadRecords();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ データを再読み込みしました (${_filteredRecords.length}件)'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            heroTag: 'sync',
+            icon: const Icon(Icons.refresh),
+            label: const Text('再読み込み'),
+            backgroundColor: Colors.blue,
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => const ExcelExportDialog(),
+              );
+            },
+            heroTag: 'export',
+            icon: const Icon(Icons.download),
+            label: const Text('Excel出力'),
+            backgroundColor: Colors.green,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
