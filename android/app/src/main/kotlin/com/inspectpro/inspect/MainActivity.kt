@@ -1,5 +1,6 @@
-package com.inspectpro.inspect_pro
+package com.inspectpro.inspect
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()
+

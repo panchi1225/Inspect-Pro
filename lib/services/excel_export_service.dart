@@ -2,11 +2,11 @@ import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'database_service.dart';
 import 'cloud_sync_service.dart';
-// Web用
-import 'dart:html' as html;
-// モバイル用
-import 'dart:io' show File;
-import 'package:path_provider/path_provider.dart';
+
+// 条件付きimport: Web/Mobile別のExcelダウンロード実装
+import 'excel_download_stub.dart'
+    if (dart.library.html) 'excel_download_web.dart'
+    if (dart.library.io) 'excel_download_mobile.dart';
 
 class ExcelExportService {
   /// 月次Excel帳票を生成（完全仕様準拠版）
@@ -646,21 +646,10 @@ class ExcelExportService {
 
       // プラットフォーム別保存処理
       if (kIsWeb) {
-        final blob = html.Blob([fileBytes]);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        html.AnchorElement(href: url)
-          ..setAttribute('download', fileName)
-          ..click();
-        html.Url.revokeObjectUrl(url);
-        print('🌐 Web: ファイルダウンロード実行');
+        downloadExcelFile(fileBytes, fileName);
         return fileName;
       } else {
-        final directory = await getApplicationDocumentsDirectory();
-        final filePath = '${directory.path}/$fileName';
-        final file = File(filePath);
-        await file.writeAsBytes(fileBytes);
-        print('📱 Mobile: ファイル保存完了 ($filePath)');
-        return filePath;
+        await downloadExcelFile(fileBytes, fileName);
       }
     } catch (e, stackTrace) {
       print('\n❌❌❌ Excel生成エラー ❌❌❌');

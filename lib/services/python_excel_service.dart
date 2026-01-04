@@ -1,9 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http/http.dart' as http;
 import 'database_service.dart';
 import 'cloud_sync_service.dart';
-// Web用
-import 'dart:html' as html;
+
+// 条件付きimport: Web/Mobile別のExcelダウンロード実装
+import 'excel_download_stub.dart'
+    if (dart.library.html) 'excel_download_web.dart'
+    if (dart.library.io) 'excel_download_mobile.dart';
 
 class PythonExcelService {
   /// PythonバックエンドでExcel生成（画像・罫線付き）
@@ -131,36 +135,22 @@ class PythonExcelService {
       print('📤 APIリクエスト送信: $apiUrl');
       print('📊 データサイズ: ${jsonString.length}バイト');
       
-      // XHRリクエストを作成
-      final xhr = html.HttpRequest();
-      xhr.open('POST', apiUrl);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.responseType = 'blob';
+      // Python APIに POST リクエスト
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonString,
+      );
       
-      // リクエスト送信
-      xhr.send(jsonString);
-      
-      // レスポンスを待つ
-      await xhr.onLoadEnd.first;
-      
-      if (xhr.status == 200) {
+      if (response.statusCode == 200) {
         print('✅ Python API呼び出し成功');
-        
-        // Blobを取得
-        final blob = xhr.response;
-        
-        // ダウンロード用のリンクを作成
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', fileName)
-          ..click();
-        
-        html.Url.revokeObjectUrl(url);
-        
         print('📥 Excelファイルダウンロード開始: $fileName');
+        
+        // バイナリデータとしてダウンロード
+        downloadExcelFile(response.bodyBytes, fileName);
         return fileName;
       } else {
-        print('❌ Python APIエラー: ${xhr.status} ${xhr.statusText}');
+        print('❌ Python APIエラー: ${response.statusCode}');
         return null;
       }
     } catch (e) {

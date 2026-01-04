@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import '../models/inspection_record.dart';
-import '../data/master_data.dart';
-import '../services/database_service.dart';
 import '../services/cloud_sync_service.dart';
-import '../services/master_data_service.dart';
 import '../services/auth_service.dart';
 import 'record_detail_screen.dart';
-import 'excel_export_dialog.dart';
+// Excel出力はWeb専用
+import 'excel_export_dialog.dart' if (dart.library.io) 'record_detail_screen.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -493,8 +492,8 @@ class _AdminScreenState extends State<AdminScreen> {
             backgroundColor: Colors.blue,
           ),
           const SizedBox(height: 12),
-          // Excel出力ボタン(管理者のみ表示)
-          if (authService.isAdmin) ...[
+          // Excel出力ボタン(管理者のみ表示、Web専用)
+          if (authService.isAdmin && kIsWeb) ...[
             FloatingActionButton.extended(
               onPressed: () {
                 showDialog(
