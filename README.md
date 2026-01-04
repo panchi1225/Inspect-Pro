@@ -1,16 +1,162 @@
-# inspect_pro
+# Inspect Pro - 建設機械日々点検アプリ（社内専用Web版）
 
-A new Flutter project.
+## 🌐 概要
 
-## Getting Started
+Inspect Proは、建設機械の日々点検を記録・管理するWeb限定アプリケーションです。  
+**社内専用**として、URLを知る社内関係者のみが使用できます。
 
-This project is a starting point for a Flutter application.
+## 🚀 アクセス方法
 
-A few resources to get you started if this is your first Flutter project:
+### GitHub Pagesでのアクセス（推奨・半永久的）
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```
+https://panchi1225.github.io/Inspect-Pro/
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+このURLは、GitHubリポジトリが存在する限り半永久的にアクセス可能です。
+
+### 初回セットアップ（管理者のみ）
+
+1. **GitHub Pagesの有効化**
+   - GitHubリポジトリ: https://github.com/panchi1225/Inspect-Pro
+   - Settings → Pages
+   - Source: "GitHub Actions" を選択
+   - 自動的にデプロイが開始されます
+
+2. **Firebase設定（既に完了済み）**
+   - Firestore Database: 有効化済み
+   - マスタデータ: CSVインポート完了
+   - セキュリティルール: 開発用設定済み
+
+## 📱 使用方法
+
+### 1. ログイン
+
+```
+点検者ロール: パスワード 1331
+管理者ロール: パスワード 4043
+```
+
+### 2. 点検作業フロー
+
+1. **現場選択** → 現場名を選択
+2. **点検者選択** → 点検者名を選択
+3. **重機選択** → 重機種類 → 型式 → 号機の3段階選択
+4. **点検入力** → 各項目を「良」「不良」で入力
+5. **保存** → Firestoreに保存（全媒体で共有）
+
+### 3. 管理機能（管理者のみ）
+
+- **点検データ管理**: 全媒体の点検データを閲覧
+- **Excel出力**: 月次帳票をExcel形式でダウンロード（Web専用）
+- **マスタデータ管理**: 現場名・点検者名・所有会社名の追加/削除
+
+## 🔧 技術仕様
+
+### アーキテクチャ
+
+- **フロントエンド**: Flutter Web（Dart）
+- **バックエンド**: Firebase Cloud Firestore
+- **認証**: アプリ内ロールベース認証（簡易版）
+- **ホスティング**: GitHub Pages
+
+### データ構造
+
+**Firestoreコレクション:**
+
+- `sites`: 現場マスタ
+- `inspectors`: 点検者マスタ
+- `companies`: 所有会社マスタ
+- `machines`: 重機マスタ
+- `machineTypes/{typeId}/items`: 点検項目テンプレート
+- `inspections`: 点検記録
+
+### 対応機種（点検項目登録済み）
+
+- 油圧ショベル: 14項目 / 25台
+- ブルドーザー: 11項目 / 15台
+- 不整地運搬車: 14項目 / 5台
+- コンバインドローラー: 10項目 / 5台
+- 振動ローラー: 7項目 / 5台
+- ハンドガイド式除草機: 11項目 / 5台
+
+## 🛠️ メンテナンス
+
+### コード更新時の自動デプロイ
+
+`main`ブランチへのプッシュで自動的にGitHub Pagesに反映されます：
+
+```bash
+git add .
+git commit -m "Update: 変更内容"
+git push origin main
+```
+
+約2-3分後に https://panchi1225.github.io/Inspect-Pro/ が更新されます。
+
+### 手動デプロイ
+
+GitHub Actionsタブから「Deploy Flutter Web to GitHub Pages」を手動実行可能です。
+
+### データバックアップ
+
+Firestoreデータは自動的にGoogleクラウドでバックアップされます。
+
+## 📋 重要な注意事項
+
+### ✅ 推奨事項
+
+- **ブラウザ**: Chrome/Edge/Safari/Firefox最新版
+- **ネットワーク**: インターネット接続必須（Firestore通信）
+- **画面解像度**: 1280x720以上推奨
+- **キャッシュクリア**: 問題発生時はスーパーリロード（Ctrl+Shift+R）
+
+### ⚠️ 制限事項
+
+- **モバイル対応**: 現在はWeb専用（スマートフォンブラウザでも動作可能）
+- **Excel出力**: Web版のみ対応（ダウンロード形式）
+- **オフライン**: 非対応（常時インターネット接続が必要）
+
+### 🔒 セキュリティ
+
+- **社内専用**: URLを社内関係者のみに共有
+- **認証**: 簡易パスワード認証（強化予定）
+- **データ**: Firestore上で一元管理
+
+## 🆘 トラブルシューティング
+
+### 問題: ページが表示されない
+
+**解決策:**
+1. ブラウザキャッシュをクリア（Ctrl+Shift+R）
+2. URLが正しいか確認
+3. GitHub Pagesが有効になっているか確認
+
+### 問題: 点検データが保存されない
+
+**解決策:**
+1. インターネット接続を確認
+2. ブラウザのコンソールでエラーを確認
+3. Firebase Firestoreが正常に動作しているか確認
+
+### 問題: 重機リストが表示されない
+
+**解決策:**
+1. Firestoreに重機データが登録されているか確認
+2. ブラウザを再読み込み
+3. 管理者に連絡
+
+## 📞 サポート
+
+技術的な問題やデータ不整合が発生した場合は、GitHubリポジトリのIssuesで報告してください。
+
+**リポジトリURL**: https://github.com/panchi1225/Inspect-Pro
+
+## 📝 ライセンス
+
+社内専用アプリケーション - 無断転載・再配布禁止
+
+---
+
+**最終更新**: 2025年12月3日  
+**バージョン**: 1.0.0 (Firestore統合版)
