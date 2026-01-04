@@ -646,10 +646,11 @@ class ExcelExportService {
 
       // プラットフォーム別保存処理
       if (kIsWeb) {
-        downloadExcelFile(fileBytes, fileName);
+        await ExcelDownload.downloadFile(fileBytes, fileName);
         return fileName;
       } else {
-        await downloadExcelFile(fileBytes, fileName);
+        await ExcelDownload.downloadFile(fileBytes, fileName);
+        return fileName;
       }
     } catch (e, stackTrace) {
       print('\n❌❌❌ Excel生成エラー ❌❌❌');
