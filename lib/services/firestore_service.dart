@@ -238,11 +238,9 @@ class FirestoreService {
         final data = doc.data();
         items.add(InspectionItem(
           code: doc.id,
-          label: data['label'] ?? '',
-          description: data['description'] ?? '',
-          type: data['type'] ?? 'choice',
-          choices: (data['choices'] as List?)?.cast<String>() ?? ['good', 'bad'],
-          lawRequired: data['lawRequired'] == true,
+          name: data['label'] ?? '',
+          checkPoint: data['description'] ?? '',
+          isRequired: data['lawRequired'] == true,
         ));
       }
 

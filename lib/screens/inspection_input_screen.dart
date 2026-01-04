@@ -3,8 +3,6 @@ import 'package:image_picker/image_picker.dart';
 import '../models/machine.dart';
 import '../models/inspection_item.dart';
 import '../models/inspection_record.dart';
-import '../services/database_service.dart';
-import '../services/cloud_sync_service.dart';
 import '../services/firestore_service.dart';
 
 class InspectionInputScreen extends StatefulWidget {
@@ -306,7 +304,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
 
   Widget _buildInspectionForm() {
     return Column(
-        children: [
+      children: [
           // ヘッダー情報
           Container(
             width: double.infinity,
@@ -707,7 +705,6 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
