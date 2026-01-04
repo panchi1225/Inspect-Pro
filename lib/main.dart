@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/database_service.dart';
 import 'services/cloud_sync_service.dart';
 import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Firebase初期化
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase初期化完了');
+  } catch (e) {
+    print('⚠️ Firebase initialization warning: $e');
+  }
   
   // データベースの初期化
   try {
