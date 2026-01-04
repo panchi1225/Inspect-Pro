@@ -146,8 +146,8 @@ class PythonExcelService {
         print('✅ Python API呼び出し成功');
         print('📥 Excelファイルダウンロード開始: $fileName');
         
-        // バイナリデータとしてダウンロード
-        downloadExcelFile(response.bodyBytes, fileName);
+        // プラットフォーム別ダウンロード処理
+        await ExcelDownload.downloadFile(response.bodyBytes, fileName);
         return fileName;
       } else {
         print('❌ Python APIエラー: ${response.statusCode}');

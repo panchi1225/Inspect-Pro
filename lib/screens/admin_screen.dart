@@ -3,10 +3,11 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import '../models/inspection_record.dart';
 import '../services/cloud_sync_service.dart';
+import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import 'record_detail_screen.dart';
-// Excel出力はWeb専用
-import 'excel_export_dialog.dart' if (dart.library.io) 'record_detail_screen.dart';
+// Excel出力ダイアログ（Web専用機能だが、ビルドには含める）
+import 'excel_export_dialog.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -36,8 +37,8 @@ class _AdminScreenState extends State<AdminScreen> {
   
   Future<void> _loadMasterData() async {
     try {
-      final masterDataService = MasterDataService();
-      final sites = await masterDataService.getSites();
+      final firestoreService = FirestoreService();
+      final sites = await firestoreService.getMasterData('sites');
       setState(() {
         _availableSites = sites;
       });
@@ -498,7 +499,7 @@ class _AdminScreenState extends State<AdminScreen> {
               onPressed: () {
                 showDialog(
                   context: context,
-                  builder: (context) => const ExcelExportDialog(),
+                  builder: (context) => ExcelExportDialog(),
                 );
               },
               heroTag: 'export',
