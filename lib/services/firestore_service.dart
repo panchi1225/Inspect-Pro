@@ -308,4 +308,111 @@ class FirestoreService {
       return [];
     }
   }
+
+  // ============================================================
+  // 汎用マスタデータメソッド（マスタデータ管理画面用）
+  // ============================================================
+
+  /// マスタデータを取得（現場名・点検者名・所有会社名）
+  /// collectionName: 'sites', 'inspectors', 'companies'
+  Future<List<String>> getMasterData(String collectionName) async {
+    try {
+      final snapshot = await _firestore
+          .collection(collectionName)
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => doc.data()['name'] as String)
+          .toList();
+    } catch (e) {
+      print('❌ $collectionName取得エラー: $e');
+      return [];
+    }
+  }
+
+  /// マスタデータを追加
+  Future<void> addMasterData(String collectionName, String name) async {
+    try {
+      await _firestore.collection(collectionName).add({
+        'name': name,
+        'isActive': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ $collectionName「$name」を追加しました');
+    } catch (e) {
+      print('❌ $collectionName追加エラー: $e');
+      throw Exception('$collectionName追加に失敗しました: $e');
+    }
+  }
+
+  /// マスタデータを削除（name で検索して削除）
+  Future<void> deleteMasterData(String collectionName, String name) async {
+    try {
+      final snapshot = await _firestore
+          .collection(collectionName)
+          .where('name', isEqualTo: name)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        throw Exception('$collectionName「$name」が見つかりません');
+      }
+
+      await snapshot.docs.first.reference.delete();
+      print('✅ $collectionName「$name」を削除しました');
+    } catch (e) {
+      print('❌ $collectionName削除エラー: $e');
+      throw Exception('$collectionName削除に失敗しました: $e');
+    }
+  }
+
+  /// 現場を削除（関連する点検データも削除）
+  Future<void> deleteSiteWithInspections(String siteName) async {
+    try {
+      print('🗑️ 現場「$siteName」と関連データを削除中...');
+
+      // 1. siteNameで現場ドキュメントを取得
+      final siteSnapshot = await _firestore
+          .collection('sites')
+          .where('name', isEqualTo: siteName)
+          .limit(1)
+          .get();
+
+      if (siteSnapshot.docs.isEmpty) {
+        throw Exception('現場「$siteName」が見つかりません');
+      }
+
+      final siteId = siteSnapshot.docs.first.id;
+
+      // 2. 関連する点検データを削除（最大500件ずつ）
+      while (true) {
+        final inspections = await _firestore
+            .collection('inspections')
+            .where('siteId', isEqualTo: siteId)
+            .limit(500)
+            .get();
+
+        if (inspections.docs.isEmpty) {
+          break;
+        }
+
+        final batch = _firestore.batch();
+        for (final doc in inspections.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+
+        print('🗑️ 点検データ ${inspections.docs.length}件を削除しました');
+      }
+
+      // 3. 現場自体を削除
+      await _firestore.collection('sites').doc(siteId).delete();
+      print('✅ 現場「$siteName」を削除しました');
+    } catch (e) {
+      print('❌ 現場削除エラー: $e');
+      throw Exception('現場削除に失敗しました: $e');
+    }
+  }
 }

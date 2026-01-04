@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/master_data_service.dart';
+import '../services/firestore_service.dart';
 
 /// マスタデータ管理画面
 /// 現場名、点検者名、所有会社名の追加・削除を管理
@@ -13,7 +13,7 @@ class MasterDataManagementScreen extends StatefulWidget {
 
 class _MasterDataManagementScreenState
     extends State<MasterDataManagementScreen> {
-  final MasterDataService _masterDataService = MasterDataService();
+  final FirestoreService _firestoreService = FirestoreService();
 
   List<String> _sites = [];
   List<String> _inspectors = [];
@@ -33,9 +33,9 @@ class _MasterDataManagementScreenState
     });
 
     try {
-      final sites = await _masterDataService.getSites();
-      final inspectors = await _masterDataService.getInspectors();
-      final companies = await _masterDataService.getCompanies();
+      final sites = await _firestoreService.getMasterData('sites');
+      final inspectors = await _firestoreService.getMasterData('inspectors');
+      final companies = await _firestoreService.getMasterData('companies');
 
       setState(() {
         _sites = sites;
@@ -80,7 +80,7 @@ class _MasterDataManagementScreenState
 
     if (result != null && result.isNotEmpty) {
       try {
-        await _masterDataService.addSite(result);
+        await _firestoreService.addMasterData('sites', result);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('現場名「$result」を追加しました')),
         );
@@ -118,7 +118,8 @@ class _MasterDataManagementScreenState
 
     if (confirm == true) {
       try {
-        await _masterDataService.deleteSite(site);
+        // 現場削除時は関連する点検データも削除
+        await _firestoreService.deleteSiteWithInspections(site);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('現場名「$site」を削除しました')),
         );
@@ -160,7 +161,7 @@ class _MasterDataManagementScreenState
 
     if (result != null && result.isNotEmpty) {
       try {
-        await _masterDataService.addInspector(result);
+        await _firestoreService.addMasterData('inspectors', result);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('点検者名「$result」を追加しました')),
         );
@@ -195,7 +196,7 @@ class _MasterDataManagementScreenState
 
     if (confirm == true) {
       try {
-        await _masterDataService.deleteInspector(inspector);
+        await _firestoreService.deleteMasterData('inspectors', inspector);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('点検者名「$inspector」を削除しました')),
         );
@@ -237,7 +238,7 @@ class _MasterDataManagementScreenState
 
     if (result != null && result.isNotEmpty) {
       try {
-        await _masterDataService.addCompany(result);
+        await _firestoreService.addMasterData('companies', result);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('所有会社名「$result」を追加しました')),
         );
@@ -272,7 +273,7 @@ class _MasterDataManagementScreenState
 
     if (confirm == true) {
       try {
-        await _masterDataService.deleteCompany(company);
+        await _firestoreService.deleteMasterData('companies', company);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('所有会社名「$company」を削除しました')),
         );
