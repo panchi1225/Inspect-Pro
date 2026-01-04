@@ -10,7 +10,7 @@ class RecordDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('yyyy年MM月dd日 HH:mm');
+    final dateFormat = DateFormat('yyyy年MM月dd日'); // 日付のみ、時間を削除
     final machine = DatabaseService.getMachineById(record.machineId);
     final items = machine?.getInspectionItems() ?? [];
 
@@ -38,6 +38,21 @@ class RecordDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
+                // 現場名を追加
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, color: Colors.white70, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      record.siteName.isNotEmpty ? record.siteName : '現場未指定',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     const Icon(Icons.person, color: Colors.white70, size: 16),

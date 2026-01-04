@@ -18,42 +18,29 @@ class MachineSelectionScreenV2 extends StatefulWidget {
 }
 
 class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
-  // 重機データ（CSVから）
-  final List<Map<String, String>> _machineData = [
-    {'type': '油圧ショベル', 'model': 'PC200', 'unit': '1号機'},
-    {'type': '油圧ショベル', 'model': 'PC200', 'unit': '2号機'},
-    {'type': '油圧ショベル', 'model': 'PC200', 'unit': '3号機'},
-    {'type': '油圧ショベル', 'model': 'PC200', 'unit': '4号機'},
-    {'type': '油圧ショベル', 'model': 'PC200', 'unit': '5号機'},
-    {'type': '油圧ショベル', 'model': 'PC200', 'unit': '6号機'},
-    {'type': '油圧ショベル', 'model': 'PC200', 'unit': '7号機'},
-    {'type': '油圧ショベル', 'model': 'PC200', 'unit': '8号機'},
-    {'type': '油圧ショベル', 'model': 'PC138', 'unit': '1号機'},
-    {'type': '油圧ショベル', 'model': 'PC138', 'unit': '2号機'},
-    {'type': '油圧ショベル', 'model': 'PC138', 'unit': '3号機'},
-    {'type': '油圧ショベル', 'model': 'PC138', 'unit': '4号機'},
-    {'type': '油圧ショベル', 'model': 'PC138', 'unit': '5号機'},
-    {'type': '油圧ショベル', 'model': 'PC58', 'unit': '1号機'},
-    {'type': '油圧ショベル', 'model': 'PC30', 'unit': '1号機'},
-    {'type': 'ブルドーザ', 'model': 'D37PXi', 'unit': '1号機'},
-    {'type': 'ブルドーザ', 'model': 'D39PX', 'unit': '1号機'},
-    {'type': 'ブルドーザ', 'model': 'D51PXi', 'unit': '1号機'},
-  ];
+  // 重機データをMasterDataから取得
+  List<Machine> _allMachines = [];
 
   String? _selectedType;
   String? _selectedModel;
   String? _selectedUnit;
 
+  @override
+  void initState() {
+    super.initState();
+    _allMachines = MasterData.getMachines();
+  }
+
   List<String> get _machineTypes {
-    final types = _machineData.map((m) => m['type']!).toSet().toList();
+    final types = _allMachines.map((m) => m.type).toSet().toList();
     return types;
   }
 
   List<String> get _models {
     if (_selectedType == null) return [];
-    final models = _machineData
-        .where((m) => m['type'] == _selectedType)
-        .map((m) => m['model']!)
+    final models = _allMachines
+        .where((m) => m.type == _selectedType)
+        .map((m) => m.model)
         .toSet()
         .toList();
     return models;
@@ -61,9 +48,9 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
 
   List<String> get _units {
     if (_selectedType == null || _selectedModel == null) return [];
-    final units = _machineData
-        .where((m) => m['type'] == _selectedType && m['model'] == _selectedModel)
-        .map((m) => m['unit']!)
+    final units = _allMachines
+        .where((m) => m.type == _selectedType && m.model == _selectedModel)
+        .map((m) => m.unitNumber)
         .toList();
     return units;
   }
@@ -74,14 +61,11 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
       return null;
     }
 
-    // マスタデータから重機を検索
-    // type形式: "油圧ショベル(PC200)" または "ブルドーザ(D37PXi)"
-    final typeWithModel = '$_selectedType($_selectedModel)';
-    
-    // 既存のgetMachines()から検索
-    final machines = MasterData.getMachines();
-    for (var machine in machines) {
-      if (machine.type == typeWithModel && machine.unitNumber == _selectedUnit) {
+    // マスタデータから重機を検索（type、model、unitNumberで照合）
+    for (var machine in _allMachines) {
+      if (machine.type == _selectedType && 
+          machine.model == _selectedModel && 
+          machine.unitNumber == _selectedUnit) {
         return machine;
       }
     }

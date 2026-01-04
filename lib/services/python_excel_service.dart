@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'database_service.dart';
+import 'cloud_sync_service.dart';
 // Web用
 import 'dart:html' as html;
 
@@ -13,6 +14,7 @@ class PythonExcelService {
     String? siteName,
     String? companyName,
     String? responsiblePerson,
+    String? primeContractorInspector, // 元請点検責任者
   }) async {
     try {
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -27,14 +29,19 @@ class PythonExcelService {
       }
       print('✅ 重機: ${machine.model} ${machine.unitNumber}');
 
-      // 2. 点検記録を取得
-      final allRecords = DatabaseService.getAllRecords();
+      // 2. 点検記録を取得（サーバーAPIから全媒体のデータを取得）
+      final cloudSync = CloudSyncService();
+      final allRecords = await cloudSync.fetchAllRecordsFromCloud();
+      print('✅ 全記録数（サーバー）: ${allRecords.length}件');
+      
       final monthRecords = allRecords.where((r) {
+        // machineId、年月、現場名がすべて一致するデータのみ
         return r.machineId == machineId &&
             r.inspectionDate.year == year &&
-            r.inspectionDate.month == month;
+            r.inspectionDate.month == month &&
+            (siteName == null || siteName.isEmpty || r.siteName == siteName);
       }).toList();
-      print('✅ 対象月の記録数: ${monthRecords.length}件');
+      print('✅ 対象月の記録数: ${monthRecords.length}件 (現場: ${siteName ?? "指定なし"})');
 
       // 3. 点検項目を取得
       final items = machine.getInspectionItems();
@@ -48,6 +55,7 @@ class PythonExcelService {
         'site_name': siteName ?? '',
         'company_name': companyName ?? '',
         'responsible_person': responsiblePerson ?? '',
+        'prime_contractor_inspector': primeContractorInspector ?? '', // 元請点検責任者
         'month': month,
         'year': year,
         'records': monthRecords.map((r) {

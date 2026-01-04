@@ -4,6 +4,8 @@ import '../models/inspection_record.dart';
 import '../data/master_data.dart';
 import '../services/database_service.dart';
 import '../services/cloud_sync_service.dart';
+import '../services/master_data_service.dart';
+import '../services/auth_service.dart';
 import 'record_detail_screen.dart';
 import 'excel_export_dialog.dart';
 
@@ -17,6 +19,7 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   List<InspectionRecord> _records = [];
   List<InspectionRecord> _filteredRecords = [];
+  List<String> _availableSites = [];
   String? _filterSite;
   String? _filterMachineType;
   DateTime? _filterStartDate;
@@ -27,20 +30,29 @@ class _AdminScreenState extends State<AdminScreen> {
     super.initState();
     // 画面描画後にデータをロード
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMasterData();
       _loadRecords();
     });
+  }
+  
+  Future<void> _loadMasterData() async {
+    try {
+      final masterDataService = MasterDataService();
+      final sites = await masterDataService.getSites();
+      setState(() {
+        _availableSites = sites;
+      });
+    } catch (e) {
+      print('❌ Failed to load master data: $e');
+    }
   }
 
   Future<void> _loadRecords() async {
     try {
-      // まずクラウドから同期
+      // サーバーから直接取得（Hiveキャッシュを使わない）
       final cloudSync = CloudSyncService();
-      await cloudSync.syncAllData();
-      print('✅ Cloud sync completed');
-      
-      // ローカルデータを取得
-      final records = DatabaseService.getAllRecords();
-      print('✅ Admin screen loaded ${records.length} records');
+      final records = await cloudSync.fetchAllRecordsFromCloud();
+      print('✅ Admin screen loaded ${records.length} records from server');
       
       setState(() {
         _records = records;
@@ -131,12 +143,13 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
     final dateFormat = DateFormat('yyyy/MM/dd');
     final machineTypes = _records.map((r) => r.machineType).toSet().toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('管理画面'),
+        title: Text(AuthService().currentRole?.screenTitle ?? '点検データ'),
         elevation: 0,
       ),
       body: Column(
@@ -167,7 +180,7 @@ class _AdminScreenState extends State<AdminScreen> {
                             value: null,
                             child: Text('すべて'),
                           ),
-                          ...MasterData.sites.map((site) => DropdownMenuItem(
+                          ..._availableSites.map((site) => DropdownMenuItem(
                                 value: site,
                                 child: Text(
                                   site,
@@ -480,18 +493,21 @@ class _AdminScreenState extends State<AdminScreen> {
             backgroundColor: Colors.blue,
           ),
           const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => const ExcelExportDialog(),
-              );
-            },
-            heroTag: 'export',
-            icon: const Icon(Icons.download),
-            label: const Text('Excel出力'),
-            backgroundColor: Colors.green,
-          ),
+          // Excel出力ボタン(管理者のみ表示)
+          if (authService.isAdmin) ...[
+            FloatingActionButton.extended(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const ExcelExportDialog(),
+                );
+              },
+              heroTag: 'export',
+              icon: const Icon(Icons.download),
+              label: const Text('Excel出力'),
+              backgroundColor: Colors.green,
+            ),
+          ],
         ],
       ),
     );

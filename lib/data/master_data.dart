@@ -1,125 +1,96 @@
 import '../models/machine.dart';
 
 class MasterData {
-  // 現場リスト
-  static final List<String> sites = [
-    'Ｒ７稲戸井調節池土砂掘削その５工事',
-    'Ｒ６江戸川左岸平方村新田地先堤防整備工事',
-    'Ｒ７江戸川右岸下内川地先堤防整備工事',
-    'R5・6・7江戸川上流左岸河川維持工事',
-    'R7・8・9江戸川上流左岸河川維持工事',
-    'Ｒ７・Ｒ８目吹管内右岸河川維持工事',
-    '公共運動公園周辺地区整備工事（Ｒ７芝崎地区粗造成その２',
-    '県単舗装道路修繕工事（次木）',
-  ];
+  // 現場リスト（マスタデータ管理画面で管理）
+  static final List<String> sites = [];
 
-  // 点検者リスト
-  static final List<String> inspectors = [
-    '松浦 善統',
-    '大須賀 久敬',
-    '大山 聖人',
-    '品村 正人',
-    '北林 信也',
-    '新田 健二',
-    '佐藤 和則',
-    '福士 和久',
-    '鳥山 潤人',
-    '片野 茂夫',
-    '舘松 末吉',
-    '柏木 健',
-    '廣崎 錦也',
-    '深津 裕司',
-    '新田 琳央',
-    '古橋 歩夢',
-    '阪本 朋樹',
-    '王田 博文',
-    '竹内 勝',
-  ];
+  // 点検者リスト（マスタデータ管理画面で管理）
+  static final List<String> inspectors = [];
 
   // 油圧ショベルの点検項目
   static final List<Map<String, dynamic>> hydraulicExcavatorItems = [
     {
-      'code': 'B2',
+      'code': 'H1',
       'name': 'ブレーキ・旋回ロック',
       'checkPoint': '正常に作動し、確実にロックされるか。',
       'isRequired': true,
     },
     {
-      'code': 'B3',
+      'code': 'H2',
       'name': 'クラッチ',
-      'checkPoint': '操作レバーの動き等は正常に作動するか。',
+      'checkPoint': '正常に作動するか。（操作レバーの動き等）',
       'isRequired': true,
     },
     {
-      'code': 'B4',
-      'name': '各操作レバー及びペダル',
+      'code': 'H3',
+      'name': 'コントローラー（各操作レバー・ペダル）',
       'checkPoint': 'スムーズに作動し、異音や異常な動きがないか。',
       'isRequired': true,
     },
     {
-      'code': 'B5',
+      'code': 'H4',
       'name': '過負荷警報装置',
       'checkPoint': '正常に作動するか。',
       'isRequired': true,
     },
     {
-      'code': 'B6',
+      'code': 'H5',
       'name': 'エンジンの状態',
       'checkPoint': '異音や黒煙・白煙などの異常な排気はないか。',
       'isRequired': false,
     },
     {
-      'code': 'B7',
-      'name': '走行モータ・旋回モータ・減速',
+      'code': 'H6',
+      'name': '走行モータ・旋回モータ・減速機',
       'checkPoint': '異音や異常な振動はないか。',
       'isRequired': false,
     },
     {
-      'code': 'B8',
+      'code': 'H7',
       'name': '各種メーター・警報器',
       'checkPoint': '各メーターは正常に作動するか、ホーンは鳴るか。',
       'isRequired': false,
     },
     {
-      'code': 'B9',
+      'code': 'H8',
       'name': '油圧シリンダー・ホース',
       'checkPoint': '傷やひび割れはないか、油漏れはないか。',
       'isRequired': false,
     },
     {
-      'code': 'B10',
+      'code': 'H9',
       'name': 'フック・ワイヤ外れ止め等つり具',
       'checkPoint': '確実に機能するか、損傷・変形はないか。',
       'isRequired': false,
     },
     {
-      'code': 'B11',
+      'code': 'H10',
       'name': 'ブーム・アーム・バケット・リンク機構',
       'checkPoint': '曲がりや損傷はないか、スムーズに作動するか。',
       'isRequired': false,
     },
     {
-      'code': 'B12',
-      'name': '落下防止装置',
+      'code': 'H11',
+      'name': '落下防止装置（機能）',
       'checkPoint': '正常に作動するか。',
       'isRequired': false,
     },
     {
-      'code': 'B13',
+      'code': 'H12',
       'name': '水・油・燃料漏れ',
       'checkPoint': '機体全体に漏れはないか。',
       'isRequired': false,
     },
     {
-      'code': 'B14',
-      'name': 'バックミラー 及びモニター',
+      'code': 'H13',
+      'name': 'バックミラー',
       'checkPoint': '汚れや損傷はないか、向きは適切か。',
       'isRequired': false,
     },
     {
-      'code': 'B15',
-      'name': '計器',
-      'checkPoint': '油圧・水温・油温等は正常な数値を示しているか。',
+      'code': 'H14',
+      'name': '計器（油圧・水温・油温等）',
+      'checkPoint': '正常な数値を示しているか。',
       'isRequired': false,
     },
   ];
@@ -127,170 +98,870 @@ class MasterData {
   // ブルドーザの点検項目
   static final List<Map<String, dynamic>> bulldozerItems = [
     {
-      'code': 'B16',
+      'code': 'B1',
       'name': 'ブレーキ',
       'checkPoint': '制動機能及び駐車ブレーキが正常に作動するか。',
       'isRequired': true,
     },
     {
-      'code': 'B17',
+      'code': 'B2',
       'name': 'クラッチ',
       'checkPoint': '切れ具合や、操作レバー・ペダルの作動は正常か。',
       'isRequired': true,
     },
     {
-      'code': 'B18',
-      'name': '操縦装置',
-      'checkPoint': 'ステアリングレバー等はスムーズに機能するか。',
+      'code': 'B3',
+      'name': '操縦装置（ステアリングレバー等）',
+      'checkPoint': 'スムーズに機能するか。',
       'isRequired': true,
     },
     {
-      'code': 'B19',
+      'code': 'B4',
       'name': 'エンジンの状態',
       'checkPoint': '異音や黒煙・白煙などの異常な排気はないか。',
       'isRequired': false,
     },
     {
-      'code': 'B20',
+      'code': 'B5',
       'name': '走行モータ・減速機',
       'checkPoint': '異音や異常な振動はないか。',
       'isRequired': false,
     },
     {
-      'code': 'B21',
+      'code': 'B6',
       'name': '各種メーター・警報器',
       'checkPoint': '各メーターは正常に作動するか、ホーンは鳴るか。',
       'isRequired': false,
     },
     {
-      'code': 'B22',
-      'name': 'ドーザブレード',
-      'checkPoint': '損傷や変形はないか、また、その作動はスムーズか。',
+      'code': 'B7',
+      'name': 'ドーザブレード・リッパー',
+      'checkPoint': '損傷や変形はないか、また、その作動はスムーズか 。',
       'isRequired': false,
     },
     {
-      'code': 'B23',
+      'code': 'B8',
       'name': '履帯または車輪',
       'checkPoint': '摩耗、亀裂、損傷はないか、タイヤの空気圧は適正か。',
       'isRequired': false,
     },
     {
-      'code': 'B24',
+      'code': 'B9',
       'name': '水・油・燃料漏れ',
       'checkPoint': '機体全体に漏れはないか。',
       'isRequired': false,
     },
     {
-      'code': 'B25',
-      'name': 'バックミラー 及びモニター',
+      'code': 'B10',
+      'name': 'バックミラー',
       'checkPoint': '汚れや損傷はないか、向きは適切か。',
       'isRequired': false,
     },
     {
-      'code': 'B26',
-      'name': '計器',
-      'checkPoint': '油圧・水温・油温等は正常な数値を示しているか。',
+      'code': 'B11',
+      'name': '計器（油圧・水温・油温等）',
+      'checkPoint': '正常な数値を示しているか。',
       'isRequired': false,
     },
   ];
 
-  // 重機マスタデータ（CSVデータに基づく）
+  // 不整地運搬車の点検項目
+  static final List<Map<String, dynamic>> roughTerrainCarrierItems = [
+    {
+      'code': 'R1',
+      'name': '制動装置（ブレーキ）',
+      'checkPoint': '制動機能及び駐車ブレーキが正常に作動するか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'R2',
+      'name': '操縦装置（ステアリングやレバー）',
+      'checkPoint': '正常に機能しているか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'R3',
+      'name': 'クラッチ（クラッチペダルやレバー）',
+      'checkPoint': 'スムーズに動き、遊びや操作力が適切か。',
+      'isRequired': true,
+    },
+    {
+      'code': 'R4',
+      'name': '荷役装置',
+      'checkPoint': '荷台の上下動作に異音やガタつきがないか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'R5',
+      'name': '油圧装置',
+      'checkPoint': '作動油量は適正か、ホースや配管に油漏れはないか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'R6',
+      'name': '履帯または車輪',
+      'checkPoint': '摩耗、亀裂、損傷はないか、タイヤの空気圧は適正か。',
+      'isRequired': true,
+    },
+    {
+      'code': 'R7',
+      'name': '前照灯・尾灯・方向指示器',
+      'checkPoint': '正常に点灯、点滅するか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'R8',
+      'name': '警報装置',
+      'checkPoint': 'ホーン、バックアップアラームは正常に作動するか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'R9',
+      'name': 'エンジンの状態',
+      'checkPoint': '異音や異常な排気色はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'R10',
+      'name': '各種メーター・警報器',
+      'checkPoint': '各メーターは正常に作動するか、警告ランプはないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'R11',
+      'name': '水・油・燃料漏れ',
+      'checkPoint': '機体全体に漏れはないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'R12',
+      'name': '運転室・運転操作関連',
+      'checkPoint': '操作に支障をきたす物や、損傷はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'R13',
+      'name': 'バックミラー',
+      'checkPoint': '汚れや損傷はないか、向きは適切か。',
+      'isRequired': false,
+    },
+    {
+      'code': 'R14',
+      'name': '計器（油圧・水温・油温等）',
+      'checkPoint': '正常な数値を示しているか。',
+      'isRequired': false,
+    },
+  ];
+
+  // コンバインドローラーの点検項目
+  static final List<Map<String, dynamic>> combinedRollerItems = [
+    {
+      'code': 'C1',
+      'name': '操向・駐車ブレーキ・ロック',
+      'checkPoint': '効きはよいか。確実にロックできるか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'C2',
+      'name': '主クラッチ',
+      'checkPoint': '作動はよいか。ペダル等の遊びはないか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'C3',
+      'name': '逆転機（クラッチ）',
+      'checkPoint': '切れはよいか。滑りはないか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'C4',
+      'name': 'エンジン駆動',
+      'checkPoint': '始動・排気色はよいか。異音はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'C5',
+      'name': '走行用油圧ポンプ',
+      'checkPoint': '異音はないか。作動はよいか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'C6',
+      'name': '駆動油圧モータ',
+      'checkPoint': '作動はよいか。油漏れ・異音はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'C7',
+      'name': '操向ハンドル',
+      'checkPoint': '作動はよいか。ガタはないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'C8',
+      'name': 'バックミラー',
+      'checkPoint': '角度はよいか。汚れはないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'C9',
+      'name': '警報装置・灯火装置',
+      'checkPoint': '警報は鳴るか。点滅するか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'C10',
+      'name': '計器（油圧､水温､油温等）',
+      'checkPoint': '正常の範囲を示しているか。',
+      'isRequired': false,
+    },
+  ];
+
+  // 振動ローラーの点検項目
+  static final List<Map<String, dynamic>> vibratoryRollerItems = [
+    {
+      'code': 'V1',
+      'name': '主クラッチ',
+      'checkPoint': '作動はよいか。ペダル等の遊びはないか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'V2',
+      'name': '駐車ブレーキ・ロック',
+      'checkPoint': '効きはよいか。確実にロックできるか。',
+      'isRequired': true,
+    },
+    {
+      'code': 'V3',
+      'name': '計器（油圧､水温､油温等）',
+      'checkPoint': '正常の範囲を示しているか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'V4',
+      'name': 'エンジン駆動',
+      'checkPoint': '始動・排気色はよいか。異音はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'V5',
+      'name': '操向ハンドル',
+      'checkPoint': '作動はよいか。ガタはないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'V6',
+      'name': 'バックミラー',
+      'checkPoint': '角度はよいか。汚れはないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'V7',
+      'name': '警報装置・灯火装置',
+      'checkPoint': '警報は鳴るか。点滅するか。',
+      'isRequired': false,
+    },
+  ];
+
+  // ハンドガイド式除草機の点検項目
+  static final List<Map<String, dynamic>> handGuidedWeederItems = [
+    {
+      'code': 'G1',
+      'name': '燃料・オイル',
+      'checkPoint': '漏れがなく、量は適正か。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G2',
+      'name': '冷却系統',
+      'checkPoint': '詰まりや異常はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G3',
+      'name': '刃（ハンマー刃・ナイフ）',
+      'checkPoint': '摩耗・欠けがなく、確実に固定されているか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G4',
+      'name': 'ベルト・駆動部',
+      'checkPoint': '摩耗・損傷がなく、適正に張られているか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G5',
+      'name': '安全カバー・ガード類',
+      'checkPoint': '正しく取り付けられ、破損はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G6',
+      'name': '操作レバー・クラッチ',
+      'checkPoint': '正常に作動するか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G7',
+      'name': 'ブレーキ・走行部',
+      'checkPoint': '正常に作動するか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G8',
+      'name': '電装・点火装置',
+      'checkPoint': '正常に作動するか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G9',
+      'name': 'ボルト・ナット類',
+      'checkPoint': '緩みや脱落はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G10',
+      'name': '外観・漏れ・異常音',
+      'checkPoint': '損傷や漏れがなく、異常音はないか。',
+      'isRequired': false,
+    },
+    {
+      'code': 'G11',
+      'name': '消火器',
+      'checkPoint': '使用可能な状態か。',
+      'isRequired': false,
+    },
+  ];
+
+  // 重機リスト
   static List<Machine> getMachines() {
+    final List<Machine> machines = [];
     int machineId = 1;
-    final machines = <Machine>[];
-    
-    // 油圧ショベル(PC200) - 1～8号機
-    for (int i = 1; i <= 8; i++) {
-      machines.add(Machine(
-        id: 'machine_${machineId.toString().padLeft(2, '0')}',
-        type: '油圧ショベル(PC200)',
-        model: '油圧ショベル(PC200)',
-        unitNumber: '${i}号機',
-        inspectionItems: hydraulicExcavatorItems,
-      ));
-      machineId++;
-    }
-    
-    // 油圧ショベル(PC138) - 1～5号機
-    for (int i = 1; i <= 5; i++) {
-      machines.add(Machine(
-        id: 'machine_${machineId.toString().padLeft(2, '0')}',
-        type: '油圧ショベル(PC138)',
-        model: '油圧ショベル(PC138)',
-        unitNumber: '${i}号機',
-        inspectionItems: hydraulicExcavatorItems,
-      ));
-      machineId++;
-    }
-    
-    // 油圧ショベル(PC58) - 1号機
+
+    // 油圧ショベル
     machines.add(Machine(
-      id: 'machine_${machineId.toString().padLeft(2, '0')}',
-      type: '油圧ショベル(PC58)',
-      model: '油圧ショベル(PC58)',
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
       unitNumber: '1号機',
       inspectionItems: hydraulicExcavatorItems,
     ));
     machineId++;
-    
-    // 油圧ショベル(PC30) - 1号機
     machines.add(Machine(
-      id: 'machine_${machineId.toString().padLeft(2, '0')}',
-      type: '油圧ショベル(PC30)',
-      model: '油圧ショベル(PC30)',
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '2号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '3号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '4号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '5号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '6号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '7号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '8号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '9号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC200',
+      unitNumber: '10号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC138',
       unitNumber: '1号機',
       inspectionItems: hydraulicExcavatorItems,
     ));
     machineId++;
-    
-    // ブルドーザ(D37PXi) - 1号機
     machines.add(Machine(
-      id: 'machine_${machineId.toString().padLeft(2, '0')}',
-      type: 'ブルドーザ(D37PXi)',
-      model: 'ブルドーザ(D37PXi)',
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC138',
+      unitNumber: '2号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC138',
+      unitNumber: '3号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC138',
+      unitNumber: '4号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC138',
+      unitNumber: '5号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC58',
+      unitNumber: '1号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC58',
+      unitNumber: '2号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC58',
+      unitNumber: '3号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC58',
+      unitNumber: '4号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC58',
+      unitNumber: '5号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC30',
+      unitNumber: '1号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC30',
+      unitNumber: '2号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC30',
+      unitNumber: '3号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC30',
+      unitNumber: '4号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '油圧ショベル',
+      model: 'PC30',
+      unitNumber: '5号機',
+      inspectionItems: hydraulicExcavatorItems,
+    ));
+    machineId++;
+
+    // ブルドーザ
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D37PXi',
       unitNumber: '1号機',
       inspectionItems: bulldozerItems,
     ));
     machineId++;
-    
-    // ブルドーザ(D39PX) - 1号機
     machines.add(Machine(
-      id: 'machine_${machineId.toString().padLeft(2, '0')}',
-      type: 'ブルドーザ(D39PX)',
-      model: 'ブルドーザ(D39PX)',
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D37PXi',
+      unitNumber: '2号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D37PXi',
+      unitNumber: '3号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D37PXi',
+      unitNumber: '4号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D37PXi',
+      unitNumber: '5号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D39PX',
       unitNumber: '1号機',
       inspectionItems: bulldozerItems,
     ));
     machineId++;
-    
-    // ブルドーザ(D51PXi) - 1号機
     machines.add(Machine(
-      id: 'machine_${machineId.toString().padLeft(2, '0')}',
-      type: 'ブルドーザ(D51PXi)',
-      model: 'ブルドーザ(D51PXi)',
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D39PX',
+      unitNumber: '2号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D39PX',
+      unitNumber: '3号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D39PX',
+      unitNumber: '4号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D39PX',
+      unitNumber: '5号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D51PXi',
       unitNumber: '1号機',
       inspectionItems: bulldozerItems,
     ));
-    
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D51PXi',
+      unitNumber: '2号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D51PXi',
+      unitNumber: '3号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D51PXi',
+      unitNumber: '4号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ブルドーザ',
+      model: 'D51PXi',
+      unitNumber: '5号機',
+      inspectionItems: bulldozerItems,
+    ));
+    machineId++;
+
+    // 不整地運搬車
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '不整地運搬車',
+      model: '4ｔ',
+      unitNumber: '1号機',
+      inspectionItems: roughTerrainCarrierItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '不整地運搬車',
+      model: '4ｔ',
+      unitNumber: '2号機',
+      inspectionItems: roughTerrainCarrierItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '不整地運搬車',
+      model: '4ｔ',
+      unitNumber: '3号機',
+      inspectionItems: roughTerrainCarrierItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '不整地運搬車',
+      model: '4ｔ',
+      unitNumber: '4号機',
+      inspectionItems: roughTerrainCarrierItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '不整地運搬車',
+      model: '4ｔ',
+      unitNumber: '5号機',
+      inspectionItems: roughTerrainCarrierItems,
+    ));
+    machineId++;
+
+    // 振動ローラー
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '振動ローラー',
+      model: '1ｔ',
+      unitNumber: '1号機',
+      inspectionItems: vibratoryRollerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '振動ローラー',
+      model: '1ｔ',
+      unitNumber: '2号機',
+      inspectionItems: vibratoryRollerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '振動ローラー',
+      model: '1ｔ',
+      unitNumber: '3号機',
+      inspectionItems: vibratoryRollerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '振動ローラー',
+      model: '1ｔ',
+      unitNumber: '4号機',
+      inspectionItems: vibratoryRollerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: '振動ローラー',
+      model: '1ｔ',
+      unitNumber: '5号機',
+      inspectionItems: vibratoryRollerItems,
+    ));
+    machineId++;
+
+    // コンバインドローラー
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'コンバインドローラー',
+      model: '4ｔ',
+      unitNumber: '1号機',
+      inspectionItems: combinedRollerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'コンバインドローラー',
+      model: '4ｔ',
+      unitNumber: '2号機',
+      inspectionItems: combinedRollerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'コンバインドローラー',
+      model: '4ｔ',
+      unitNumber: '3号機',
+      inspectionItems: combinedRollerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'コンバインドローラー',
+      model: '4ｔ',
+      unitNumber: '4号機',
+      inspectionItems: combinedRollerItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'コンバインドローラー',
+      model: '4ｔ',
+      unitNumber: '5号機',
+      inspectionItems: combinedRollerItems,
+    ));
+    machineId++;
+
+    // ハンドガイド式除草機
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ハンドガイド式除草機',
+      model: '※型式なし',
+      unitNumber: '1号機',
+      inspectionItems: handGuidedWeederItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ハンドガイド式除草機',
+      model: '※型式なし',
+      unitNumber: '2号機',
+      inspectionItems: handGuidedWeederItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ハンドガイド式除草機',
+      model: '※型式なし',
+      unitNumber: '3号機',
+      inspectionItems: handGuidedWeederItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ハンドガイド式除草機',
+      model: '※型式なし',
+      unitNumber: '4号機',
+      inspectionItems: handGuidedWeederItems,
+    ));
+    machineId++;
+    machines.add(Machine(
+      id: machineId.toString(),
+      type: 'ハンドガイド式除草機',
+      model: '※型式なし',
+      unitNumber: '5号機',
+      inspectionItems: handGuidedWeederItems,
+    ));
+    machineId++;
+
     return machines;
   }
-  
-  // 重機種類のリストを取得（重複なし）
+
+  // 重機種類の一覧を取得
   static List<String> getMachineTypes() {
-    final machines = getMachines();
-    final types = <String>{};
-    for (var machine in machines) {
-      types.add(machine.type);
-    }
-    return types.toList();
+    // getMachines()を呼び出してツリーシェイキングを防ぐ
+    final allMachines = getMachines();
+    // 実際の重機種類を取得
+    final uniqueTypes = allMachines.map((m) => m.type).toSet();
+    
+    // 表示順序を定義
+    const typeOrder = [
+      '油圧ショベル',
+      'ブルドーザ',
+      '不整地運搬車',
+      'コンバインドローラー',
+      '振動ローラー',
+      'ハンドガイド式除草機',
+    ];
+    
+    // 存在する重機種類のみ、定義された順序で返す
+    return typeOrder.where((type) => uniqueTypes.contains(type)).toList();
   }
-  
-  // 指定した重機種類の号機リストを取得
+
+  // 指定された重機種類の号機リストを取得
   static List<String> getUnitNumbersForType(String machineType) {
     final machines = getMachines();
-    return machines
+    final units = machines
         .where((m) => m.type == machineType)
         .map((m) => m.unitNumber)
+        .toSet()
         .toList();
+    return units;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/master_data.dart';
+import '../services/master_data_service.dart';
 import 'inspector_selection_screen.dart';
 
 class SiteSelectionScreen extends StatefulWidget {
@@ -10,14 +11,39 @@ class SiteSelectionScreen extends StatefulWidget {
 }
 
 class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
+  final MasterDataService _masterDataService = MasterDataService();
   String? _selectedSite;
   final TextEditingController _searchController = TextEditingController();
+  List<String> _allSites = [];
   List<String> _filteredSites = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _filteredSites = MasterData.sites;
+    _loadSites();
+  }
+
+  Future<void> _loadSites() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final sites = await _masterDataService.getSites();
+      setState(() {
+        _allSites = sites;
+        _filteredSites = _allSites;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ 現場リスト読み込みエラー: $e');
+      setState(() {
+        _allSites = [];
+        _filteredSites = _allSites;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -29,9 +55,9 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
   void _filterSites(String query) {
     setState(() {
       if (query.isEmpty) {
-        _filteredSites = MasterData.sites;
+        _filteredSites = _allSites;
       } else {
-        _filteredSites = MasterData.sites
+        _filteredSites = _allSites
             .where((name) => name.contains(query))
             .toList();
       }
@@ -45,7 +71,9 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
         title: const Text('現場を選択'),
         elevation: 0,
       ),
-      body: SafeArea(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
         child: Column(
           children: [
             // 検索バー

@@ -1,6 +1,7 @@
 import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'database_service.dart';
+import 'cloud_sync_service.dart';
 // Web用
 import 'dart:html' as html;
 // モバイル用
@@ -28,10 +29,13 @@ class ExcelExportService {
       }
       print('✅ 重機: ${machine.model} ${machine.unitNumber}');
 
-      // 2. 点検記録を取得
+      // 2. 点検記録を取得（サーバーAPIから全媒体のデータを取得）
       print('\n📅 点検記録取得:');
-      final allRecords = DatabaseService.getAllRecords();
-      print('  - 全記録数: ${allRecords.length}件');
+      
+      // CloudSyncServiceを使用してサーバーから全データを取得
+      final cloudSync = CloudSyncService();
+      final allRecords = await cloudSync.fetchAllRecordsFromCloud();
+      print('  - 全記録数（サーバー）: ${allRecords.length}件');
       
       final monthRecords = allRecords.where((r) {
         return r.machineId == machineId &&

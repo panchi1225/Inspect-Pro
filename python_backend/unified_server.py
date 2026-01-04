@@ -57,6 +57,20 @@ def init_database():
             )
         ''')
         
+        # マスタデータテーブル（現場名、点検者名、所有会社名）
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS master_data (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                data_type TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(data_type, name)
+            )
+        ''')
+        
+        # 初期マスタデータの投入をスキップ（ユーザーがCSVで管理）
+        print('✅ Master data initialization skipped (user manages via CSV)')
+        
         conn.commit()
         conn.close()
         print('✅ Database initialized')
@@ -69,6 +83,9 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+# エイリアス（マスタデータAPI用）
+get_db_connection = get_db
 
 # Flutter Web静的ファイルのパス
 FLUTTER_WEB_DIR = '/home/user/flutter_app/build/web'
@@ -451,6 +468,211 @@ def sync_data():
         print(f'❌ データ同期エラー: {e}')
         import traceback
         traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================
+# マスタデータ管理API
+# ============================================================
+
+# 現場名管理
+@app.route('/api/master/sites', methods=['GET', 'POST', 'DELETE'])
+def manage_sites():
+    """現場名のCRUD操作"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if request.method == 'GET':
+            # 現場名一覧取得（master_dataからのみ取得、sort_order順）
+            # inspection_recordsからは取得しない（削除したマスタが復活するのを防ぐため）
+            cursor.execute('SELECT name FROM master_data WHERE data_type = "site" ORDER BY sort_order, name')
+            sites = [row['name'] for row in cursor.fetchall()]
+            
+            conn.close()
+            return jsonify({'sites': sites}), 200
+        
+        elif request.method == 'POST':
+            # 現場名追加（master_dataテーブルに保存、sort_orderは最大値+1）
+            data = request.get_json()
+            site_name = data.get('siteName', '').strip()
+            if not site_name:
+                return jsonify({'error': 'Site name is required'}), 400
+            
+            # 最大のsort_orderを取得
+            cursor.execute('SELECT MAX(sort_order) FROM master_data WHERE data_type = "site"')
+            max_order = cursor.fetchone()[0]
+            new_order = (max_order + 1) if max_order else 1
+            
+            now = datetime.now().isoformat()
+            cursor.execute(
+                'INSERT OR IGNORE INTO master_data (data_type, name, created_at, sort_order) VALUES (?, ?, ?, ?)',
+                ('site', site_name, now, new_order)
+            )
+            conn.commit()
+            conn.close()
+            
+            print(f'✅ 現場追加: {site_name} (sort_order: {new_order})')
+            return jsonify({'message': 'Site added', 'siteName': site_name}), 201
+        
+        elif request.method == 'DELETE':
+            # 現場名削除（master_dataと関連レコードを削除）
+            data = request.get_json()
+            site_name = data.get('siteName', '').strip()
+            if not site_name:
+                return jsonify({'error': 'Site name is required'}), 400
+            
+            print(f'🔍 現場削除開始: {site_name}', flush=True)
+            
+            # 削除前の点検記録数を確認
+            cursor.execute('SELECT COUNT(*) FROM inspection_records WHERE site_name = ?', (site_name,))
+            before_count = cursor.fetchone()[0]
+            print(f'   削除対象の点検記録数: {before_count}件', flush=True)
+            
+            # master_dataから削除
+            cursor.execute('DELETE FROM master_data WHERE data_type = "site" AND name = ?', (site_name,))
+            master_deleted = cursor.rowcount
+            print(f'   master_data削除: {master_deleted}件', flush=True)
+            
+            # 関連する点検記録も削除（完全一致のみ）
+            cursor.execute('DELETE FROM inspection_records WHERE site_name = ?', (site_name,))
+            records_deleted = cursor.rowcount
+            print(f'   inspection_records削除: {records_deleted}件', flush=True)
+            
+            conn.commit()
+            
+            # 削除後の確認
+            cursor.execute('SELECT COUNT(*) FROM inspection_records WHERE site_name = ?', (site_name,))
+            after_count = cursor.fetchone()[0]
+            print(f'   削除後の残存レコード数: {after_count}件', flush=True)
+            
+            conn.close()
+            
+            print(f'✅ 現場削除完了: {site_name} (マスタ: {master_deleted}件, 点検記録: {records_deleted}件)', flush=True)
+            return jsonify({
+                'message': 'Site deleted', 
+                'deletedMaster': master_deleted,
+                'deletedRecords': records_deleted,
+                'siteName': site_name
+            }), 200
+    
+    except Exception as e:
+        print(f'❌ 現場名管理エラー: {e}')
+        return jsonify({'error': str(e)}), 500
+
+# 点検者名管理
+@app.route('/api/master/inspectors', methods=['GET', 'POST', 'DELETE'])
+def manage_inspectors():
+    """点検者名のCRUD操作"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if request.method == 'GET':
+            # 点検者名一覧取得（master_dataからのみ取得、inspection_recordsは参照しない）
+            cursor.execute('SELECT name FROM master_data WHERE data_type = "inspector" ORDER BY sort_order, name')
+            inspectors = [row['name'] for row in cursor.fetchall()]
+            
+            conn.close()
+            return jsonify({'inspectors': inspectors}), 200
+        
+        elif request.method == 'POST':
+            # 点検者名追加（master_dataテーブルに保存、sort_orderは最大値+1）
+            data = request.get_json()
+            inspector_name = data.get('inspectorName', '').strip()
+            if not inspector_name:
+                return jsonify({'error': 'Inspector name is required'}), 400
+            
+            # 最大のsort_orderを取得
+            cursor.execute('SELECT MAX(sort_order) FROM master_data WHERE data_type = "inspector"')
+            max_order = cursor.fetchone()[0]
+            new_order = (max_order + 1) if max_order else 1
+            
+            now = datetime.now().isoformat()
+            cursor.execute(
+                'INSERT OR IGNORE INTO master_data (data_type, name, created_at, sort_order) VALUES (?, ?, ?, ?)',
+                ('inspector', inspector_name, now, new_order)
+            )
+            conn.commit()
+            conn.close()
+            
+            print(f'✅ 点検者追加: {inspector_name} (sort_order: {new_order})')
+            return jsonify({'message': 'Inspector added', 'inspectorName': inspector_name}), 201
+        
+        elif request.method == 'DELETE':
+            # 点検者名削除（master_dataからのみ削除、inspection_recordsは保持）
+            data = request.get_json()
+            inspector_name = data.get('inspectorName', '').strip()
+            if not inspector_name:
+                return jsonify({'error': 'Inspector name is required'}), 400
+            
+            # master_dataから削除（点検記録は削除しない）
+            cursor.execute('DELETE FROM master_data WHERE data_type = "inspector" AND name = ?', (inspector_name,))
+            
+            conn.commit()
+            conn.close()
+            
+            print(f'✅ 点検者削除: {inspector_name}')
+            return jsonify({'message': 'Inspector deleted'}), 200
+    
+    except Exception as e:
+        print(f'❌ 点検者名管理エラー: {e}')
+        return jsonify({'error': str(e)}), 500
+
+# 所有会社名管理（master_dataテーブルを使用し、sort_orderで順序管理）
+@app.route('/api/master/companies', methods=['GET', 'POST', 'DELETE'])
+def manage_companies():
+    """所有会社名のCRUD操作"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if request.method == 'GET':
+            # 所有会社名一覧取得（master_dataからsort_order順）
+            cursor.execute('SELECT name FROM master_data WHERE data_type = "company" ORDER BY sort_order, name')
+            companies = [row['name'] for row in cursor.fetchall()]
+            conn.close()
+            return jsonify({'companies': companies}), 200
+        
+        elif request.method == 'POST':
+            # 所有会社名追加（master_dataテーブルに保存、sort_orderは最大値+1）
+            data = request.get_json()
+            company_name = data.get('companyName', '').strip()
+            if not company_name:
+                return jsonify({'error': 'Company name is required'}), 400
+            
+            # 最大のsort_orderを取得
+            cursor.execute('SELECT MAX(sort_order) FROM master_data WHERE data_type = "company"')
+            max_order = cursor.fetchone()[0]
+            new_order = (max_order + 1) if max_order else 1
+            
+            now = datetime.now().isoformat()
+            cursor.execute(
+                'INSERT OR IGNORE INTO master_data (data_type, name, created_at, sort_order) VALUES (?, ?, ?, ?)',
+                ('company', company_name, now, new_order)
+            )
+            conn.commit()
+            conn.close()
+            
+            print(f'✅ 会社追加: {company_name} (sort_order: {new_order})')
+            return jsonify({'message': 'Company added', 'companyName': company_name}), 201
+        
+        elif request.method == 'DELETE':
+            # 所有会社名削除（master_dataから削除）
+            data = request.get_json()
+            company_name = data.get('companyName', '').strip()
+            if not company_name:
+                return jsonify({'error': 'Company name is required'}), 400
+            
+            cursor.execute('DELETE FROM master_data WHERE data_type = "company" AND name = ?', (company_name,))
+            deleted_count = cursor.rowcount
+            conn.commit()
+            conn.close()
+            
+            print(f'✅ 会社削除: {company_name}')
+            return jsonify({'message': 'Company deleted'}), 200
+    
+    except Exception as e:
+        print(f'❌ 所有会社名管理エラー: {e}')
         return jsonify({'error': str(e)}), 500
 
 # ============================================================

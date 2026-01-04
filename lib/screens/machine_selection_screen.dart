@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../data/master_data.dart';
 import '../models/machine.dart';
@@ -28,11 +29,29 @@ class _MachineSelectionScreenState extends State<MachineSelectionScreen> {
   void initState() {
     super.initState();
     _loadMachineTypes();
+    
+    // デバッグ: 全重機データを確認
+    if (kDebugMode) {
+      final allMachines = MasterData.getMachines();
+      print('🔍 総重機台数: ${allMachines.length}台');
+      print('🔍 重機リスト:');
+      for (var machine in allMachines.take(5)) {
+        print('   - ${machine.type} ${machine.model} ${machine.unitNumber}');
+      }
+      if (allMachines.length > 5) {
+        print('   ... (他${allMachines.length - 5}台)');
+      }
+    }
   }
 
   void _loadMachineTypes() {
     setState(() {
       _machineTypes = MasterData.getMachineTypes();
+      // デバッグ: コンソールに重機種類を出力
+      if (kDebugMode) {
+        print('🔍 読み込まれた重機種類: $_machineTypes');
+        print('🔍 重機種類数: ${_machineTypes.length}');
+      }
     });
   }
 

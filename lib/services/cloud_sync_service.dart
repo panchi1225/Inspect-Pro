@@ -23,10 +23,13 @@ class CloudSyncService {
   final DatabaseService _databaseService = DatabaseService();
 
   /// 自動同期を開始（5分ごと）
+  /// 注意：現在は無効化されています（サーバーが真実のソースとなるため）
   void startAutoSync() {
-    if (_autoSyncTimer != null) return;
+    print('⚠️ 自動同期は無効化されています');
+    return; // 自動同期を無効化
     
-    print('🔄 自動同期サービス開始');
+    // if (_autoSyncTimer != null) return;
+    // print('🔄 自動同期サービス開始');
     
     // 初回同期を即座に実行
     syncAllData();
@@ -105,52 +108,56 @@ class CloudSyncService {
         print('   サーバー記録数: ${serverRecords.length}');
         print('   作成: ${syncResult['created']}, 更新: ${syncResult['updated']}, 競合: ${syncResult['conflicts']}');
 
-        // サーバーから取得したデータをローカルに保存
-        for (var recordData in serverRecords) {
-          try {
-            // resultsをInspectionResultオブジェクトに変換
-            final resultsMap = recordData['results'] as Map<String, dynamic>;
-            final results = resultsMap.map(
-              (key, value) => MapEntry(
-                key,
-                InspectionResult.fromMap(value as Map<String, dynamic>),
-              ),
-            );
-
-            // Machine情報を取得
-            final machine = DatabaseService.getMachineById(recordData['machineId']);
-            if (machine == null) continue;
-
-            final record = InspectionRecord(
-              id: recordData['id'],
-              machineId: recordData['machineId'],
-              siteName: recordData['siteName'].isEmpty ? '現場名未設定' : recordData['siteName'],
-              inspectorName: recordData['inspectorName'],
-              machineType: machine.type,
-              machineModel: machine.model,
-              machineUnitNumber: machine.unitNumber,
-              inspectionDate: DateTime.parse(recordData['inspectionDate']),
-              results: results,
-            );
-
-            // ローカルに存在するか確認
-            final existingRecord = await _databaseService.getRecordById(record.id);
-            
-            if (existingRecord == null) {
-              // 新規作成
-              await _databaseService.saveRecord(record);
-            } else {
-              // 既存レコードがあれば更新しない（競合回避）
-              // サーバーが最新データを持っている場合のみ更新
-              final serverUpdatedAt = DateTime.parse(recordData['updatedAt']);
-              if (serverUpdatedAt.isAfter(existingRecord.inspectionDate)) {
-                await _databaseService.updateRecord(record);
-              }
-            }
-          } catch (e) {
-            print('⚠️ レコード処理エラー: $e');
-          }
-        }
+        // 🚨 重要：サーバーから取得したデータをローカルに保存しない
+        // これにより、ブラウザのHiveデータがサーバーに逆流することを防ぐ
+        // サーバーが真実のソースとなり、Hiveは読み取り専用キャッシュとして機能
+        print('⚠️ ローカル保存はスキップされます（サーバーが真実のソース）');
+        
+        // for (var recordData in serverRecords) {
+        //   try {
+        //     // resultsをInspectionResultオブジェクトに変換
+        //     final resultsMap = recordData['results'] as Map<String, dynamic>;
+        //     final results = resultsMap.map(
+        //       (key, value) => MapEntry(
+        //         key,
+        //         InspectionResult.fromMap(value as Map<String, dynamic>),
+        //       ),
+        //     );
+        //
+        //     // Machine情報を取得
+        //     final machine = DatabaseService.getMachineById(recordData['machineId']);
+        //     if (machine == null) continue;
+        //
+        //     final record = InspectionRecord(
+        //       id: recordData['id'],
+        //       machineId: recordData['machineId'],
+        //       siteName: recordData['siteName'].isEmpty ? '現場名未設定' : recordData['siteName'],
+        //       inspectorName: recordData['inspectorName'],
+        //       machineType: machine.type,
+        //       machineModel: machine.model,
+        //       machineUnitNumber: machine.unitNumber,
+        //       inspectionDate: DateTime.parse(recordData['inspectionDate']),
+        //       results: results,
+        //     );
+        //
+        //     // ローカルに存在するか確認
+        //     final existingRecord = await _databaseService.getRecordById(record.id);
+        //     
+        //     if (existingRecord == null) {
+        //       // 新規作成
+        //       await _databaseService.saveRecord(record);
+        //     } else {
+        //       // 既存レコードがあれば更新しない（競合回避）
+        //       // サーバーが最新データを持っている場合のみ更新
+        //       final serverUpdatedAt = DateTime.parse(recordData['updatedAt']);
+        //       if (serverUpdatedAt.isAfter(existingRecord.inspectionDate)) {
+        //         await _databaseService.updateRecord(record);
+        //       }
+        //     }
+        //   } catch (e) {
+        //     print('⚠️ レコード処理エラー: $e');
+        //   }
+        // }
 
         _lastSyncTime = DateTime.now();
         

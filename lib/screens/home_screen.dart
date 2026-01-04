@@ -1,13 +1,114 @@
 import 'package:flutter/material.dart';
 import 'site_selection_screen.dart';
 import 'admin_screen.dart';
+import 'master_data_management_screen.dart';
+import 'login_screen.dart';
+import '../services/auth_service.dart';
+import '../services/database_service.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+    
     return Scaffold(
+      appBar: AppBar(
+        title: Text('${authService.currentRole?.displayName ?? ""}メニュー'),
+        actions: [
+          // キャッシュクリアボタン（管理者のみ）
+          if (authService.isAdmin)
+            IconButton(
+              icon: const Icon(Icons.cleaning_services),
+              tooltip: 'ローカルキャッシュをクリア',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('キャッシュクリア'),
+                    content: const Text(
+                      'ブラウザに保存されている点検記録データをクリアします。\n\n'
+                      '※サーバー上のデータは削除されません。'
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('キャンセル'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            await DatabaseService.clearAllRecords();
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('✅ ローカルキャッシュをクリアしました'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('❌ エラー: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                        ),
+                        child: const Text('クリア'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          // ログアウトボタン
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'ログアウト',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('ログアウト'),
+                  content: const Text('ログアウトしますか?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('キャンセル'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        authService.logout();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      child: const Text('ログアウト'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -85,12 +186,16 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   
-                  // 管理画面ボタン
+                  // 管理画面ボタン(ロール別表示)
                   _buildMenuButton(
                     context: context,
-                    icon: Icons.admin_panel_settings,
-                    title: '管理画面',
-                    subtitle: 'データ照会・Excel出力',
+                    icon: authService.isAdmin 
+                        ? Icons.admin_panel_settings 
+                        : Icons.view_list,
+                    title: authService.currentRole?.screenTitle ?? '点検データ',
+                    subtitle: authService.isAdmin 
+                        ? 'データ照会・Excel出力' 
+                        : 'データ照会(閲覧のみ)',
                     color: Colors.blueGrey,
                     onTap: () {
                       Navigator.push(
@@ -101,6 +206,26 @@ class HomeScreen extends StatelessWidget {
                       );
                     },
                   ),
+                  
+                  // マスタデータ管理ボタン(管理者のみ表示)
+                  if (authService.isAdmin) ...[
+                    const SizedBox(height: 20),
+                    _buildMenuButton(
+                      context: context,
+                      icon: Icons.settings,
+                      title: 'マスタデータ管理',
+                      subtitle: '現場名・点検者名・会社名の管理',
+                      color: Colors.teal,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MasterDataManagementScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

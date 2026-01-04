@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/master_data.dart';
+import '../services/master_data_service.dart';
 import 'machine_selection_screen_v2.dart';
 
 class InspectorSelectionScreen extends StatefulWidget {
@@ -16,14 +17,39 @@ class InspectorSelectionScreen extends StatefulWidget {
 }
 
 class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
+  final MasterDataService _masterDataService = MasterDataService();
   String? _selectedInspector;
   final TextEditingController _searchController = TextEditingController();
+  List<String> _allInspectors = [];
   List<String> _filteredInspectors = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _filteredInspectors = MasterData.inspectors;
+    _loadInspectors();
+  }
+
+  Future<void> _loadInspectors() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final inspectors = await _masterDataService.getInspectors();
+      setState(() {
+        _allInspectors = inspectors;
+        _filteredInspectors = _allInspectors;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ 点検者リスト読み込みエラー: $e');
+      setState(() {
+        _allInspectors = [];
+        _filteredInspectors = _allInspectors;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -35,9 +61,9 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
   void _filterInspectors(String query) {
     setState(() {
       if (query.isEmpty) {
-        _filteredInspectors = MasterData.inspectors;
+        _filteredInspectors = _allInspectors;
       } else {
-        _filteredInspectors = MasterData.inspectors
+        _filteredInspectors = _allInspectors
             .where((name) => name.contains(query))
             .toList();
       }
@@ -51,7 +77,9 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
         title: const Text('点検者を選択'),
         elevation: 0,
       ),
-      body: SafeArea(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
         child: Column(
           children: [
             // 現場情報表示

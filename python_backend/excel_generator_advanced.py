@@ -35,6 +35,7 @@ def create_inspection_report(data, output_path):
     site_name = data.get('site_name', '')
     company_name = data.get('company_name', '')
     responsible_person = data.get('responsible_person', '')
+    prime_contractor_inspector = data.get('prime_contractor_inspector', '') # 元請点検責任者
     month = data.get('month', 1)
     year = data.get('year', 2025)
     records = data.get('records', [])
@@ -178,11 +179,14 @@ def create_inspection_report(data, output_path):
     # 行3: 法的要求事項とヘッダー情報
     # ============================================================
     
-    # ブルドーザの場合はA3のテキストを変更
-    if 'ブルドーザ' in machine_type or 'ブルドーザー' in machine_type:
-        ws['A3'] = '　【安衛則第１７０条】'
-    else:
+    # A3セルの関係法令を重機種類ごとに設定
+    if '油圧ショベル' in machine_type or '油圧ｼｮﾍﾞﾙ' in machine_type:
         ws['A3'] = '　【ｸﾚｰﾝ則第７８条】'
+    elif 'ハンドガイド式' in machine_type:
+        ws['A3'] = '　【労働安全衛生法第２０条】'
+    else:
+        # ブルドーザ、不整地運搬車、コンバインドローラー、振動ローラー
+        ws['A3'] = '　【安衛則第１７０条】'
     ws['A3'].font = font_hgmincho_14
     ws['A3'].alignment = align_left_center
     
@@ -224,13 +228,11 @@ def create_inspection_report(data, output_path):
     # 行4: 法的要求事項と型式・号機
     # ============================================================
     
-    # ブルドーザの場合はA4を空白にする
-    if 'ブルドーザ' in machine_type or 'ブルドーザー' in machine_type:
-        ws['A4'] = ''
-    else:
+    # A4セルの関係法令（油圧ショベルの場合のみ記入）
+    if '油圧ショベル' in machine_type or '油圧ｼｮﾍﾞﾙ' in machine_type:
         ws['A4'] = '　【安衛則第１７０条】'
-    ws['A4'].font = font_hgmincho_14
-    ws['A4'].alignment = align_left_center
+        ws['A4'].font = font_hgmincho_14
+        ws['A4'].alignment = align_left_center
     
     ws['J4'] = '・その他は点検すべき事項とみなした箇所'
     ws['J4'].font = font_hgmincho_14
@@ -248,9 +250,9 @@ def create_inspection_report(data, output_path):
     ws['AX4'].font = font_hgmincho_16
     ws['AX4'].alignment = align_center_center
     
-    # BE4:BH5を結合して型式のみを自動入力（中央配置）
+    # BE4:BH5を結合して型式を自動入力（中央配置）
     ws.merge_cells('BE4:BH5')
-    ws['BE4'] = model_spec
+    ws['BE4'] = machine_model  # machine_model全体を使用（括弧内のみではない）
     ws['BE4'].font = font_hgmincho_16
     ws['BE4'].alignment = align_center_center
     
@@ -417,14 +419,32 @@ def create_inspection_report(data, output_path):
     ws['AK27'].font = font_hgmincho_10
     ws['AK27'].alignment = align_center_center_wrap
     
-    # AM27:AT27
+    # AM27:AT27 - 元請点検責任者を記入（16pt、中央配置）
     ws.merge_cells('AM27:AT27')
+    ws['AM27'] = prime_contractor_inspector
+    ws['AM27'].font = font_hgmincho_16
+    ws['AM27'].alignment = align_center_center
     
-    # AW27:BD27
+    # AU27:AV27を結合
+    ws.merge_cells('AU27:AV27')
+    
+    # AW27:BD27 - 元請点検責任者を記入（16pt、中央配置）
     ws.merge_cells('AW27:BD27')
+    ws['AW27'] = prime_contractor_inspector
+    ws['AW27'].font = font_hgmincho_16
+    ws['AW27'].alignment = align_center_center
     
-    # BG27:BO27
+    # BE27:BF27を結合
+    ws.merge_cells('BE27:BF27')
+    
+    # BG27:BO27 - 元請点検責任者を記入（16pt、中央配置）
     ws.merge_cells('BG27:BO27')
+    ws['BG27'] = prime_contractor_inspector
+    ws['BG27'].font = font_hgmincho_16
+    ws['BG27'].alignment = align_center_center
+    
+    # BP27:BQ27を結合
+    ws.merge_cells('BP27:BQ27')
     
     # ============================================================
     # 行28: 補修関連ヘッダー（11pt）
@@ -472,11 +492,13 @@ def create_inspection_report(data, output_path):
     ws.merge_cells('AK30:BE30')
     ws.merge_cells('BF30:BH30')
     ws.merge_cells('BI30:BK30')
+    ws.merge_cells('BL30:BN30')  # 行30のBL～BN列を結合
     ws.merge_cells('BO30:BQ30')
     
     ws.merge_cells('AK31:BE31')
     ws.merge_cells('BF31:BH31')
     ws.merge_cells('BI31:BK31')
+    ws.merge_cells('BL31:BN31')  # 行31のBL～BN列を結合
     ws.merge_cells('BO31:BQ31')
     
     # ============================================================

@@ -26,6 +26,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
   final Map<String, InspectionResult> _results = {};
   final Map<String, TextEditingController> _memoControllers = {};
   final ImagePicker _picker = ImagePicker();
+  DateTime _selectedDate = DateTime.now(); // 選択された点検日
 
   @override
   void dispose() {
@@ -130,6 +131,44 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
     );
   }
 
+  Future<void> _selectInspectionDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000), // 過去の日付を許可
+      lastDate: DateTime(2100), // 未来の日付を許可
+      locale: const Locale('ja', 'JP'),
+      helpText: '点検日を選択',
+      cancelText: 'キャンセル',
+      confirmText: '決定',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _selectedDate.hour,
+          _selectedDate.minute,
+        );
+      });
+    }
+  }
+
   Future<void> _saveInspection() async {
     if (_completedCount < _totalCount) {
       final confirmed = await showDialog<bool>(
@@ -163,7 +202,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
       machineType: widget.machine.type,
       machineModel: widget.machine.model,
       machineUnitNumber: widget.machine.unitNumber,
-      inspectionDate: DateTime.now(),
+      inspectionDate: _selectedDate, // 選択された日付を使用
       results: _results,
     );
 
@@ -306,6 +345,42 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                // 点検日選択ボタン
+                InkWell(
+                  onTap: _selectInspectionDate,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white54),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '点検日: ',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        Text(
+                          '${_selectedDate.year}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.edit, color: Colors.white70, size: 18),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 LinearProgressIndicator(

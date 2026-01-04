@@ -191,4 +191,20 @@ class DatabaseService {
   Future<List<InspectionRecord>> fetchAllRecords() async {
     return DatabaseService.getAllRecords();
   }
+
+  // すべての点検記録を削除
+  static Future<void> clearAllRecords() async {
+    try {
+      if (!Hive.isBoxOpen(recordBoxName)) {
+        await Hive.openBox<Map>(recordBoxName);
+      }
+      final recordBox = Hive.box<Map>(recordBoxName);
+      final count = recordBox.length;
+      await recordBox.clear();
+      print('✅ Cleared $count records from local storage');
+    } catch (e) {
+      print('❌ Error clearing records: $e');
+      rethrow;
+    }
+  }
 }

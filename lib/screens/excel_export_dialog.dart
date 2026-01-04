@@ -4,6 +4,8 @@ import '../data/master_data.dart';
 import '../services/database_service.dart';
 import '../services/excel_export_service.dart';
 import '../services/python_excel_service.dart';
+import '../services/master_data_service.dart';
+import '../services/cloud_sync_service.dart';
 
 class ExcelExportDialog extends StatefulWidget {
   final bool usePythonBackend;
@@ -15,26 +17,95 @@ class ExcelExportDialog extends StatefulWidget {
 }
 
 class _ExcelExportDialogState extends State<ExcelExportDialog> {
+  final MasterDataService _masterDataService = MasterDataService();
+  
   String? _selectedSite;
   String? _selectedMachineId;
   String? _selectedCompanyName;
   String? _selectedResponsiblePerson;
+  String? _selectedPrimeContractorInspector; // 元請点検責任者
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
   bool _isExporting = false;
+  bool _isLoading = true;
 
   List<Machine> _machines = [];
+  List<Machine> _filteredMachines = [];
+  List<String> _sites = [];
+  List<String> _inspectors = [];
+  List<String> _companies = [];
 
   @override
   void initState() {
     super.initState();
-    _loadMachines();
+    _loadData();
   }
 
-  void _loadMachines() {
+  Future<void> _loadData() async {
     setState(() {
-      _machines = DatabaseService.getAllMachines();
+      _isLoading = true;
     });
+
+    try {
+      // マスタデータを取得
+      final sites = await _masterDataService.getSites();
+      final inspectors = await _masterDataService.getInspectors();
+      final companies = await _masterDataService.getCompanies();
+
+      setState(() {
+        _sites = sites.isNotEmpty ? sites : MasterData.sites;
+        _inspectors = inspectors.isNotEmpty ? inspectors : MasterData.inspectors;
+        _companies = companies.isNotEmpty ? companies : ['指定なし', '松浦建設(株)'];
+        _machines = DatabaseService.getAllMachines();
+        _isLoading = false;
+      });
+      
+      // 重機リストをフィルタリング（サーバーから取得）
+      await _updateFilteredMachines();
+    } catch (e) {
+      print('❌ マスタデータ読み込みエラー: $e');
+      setState(() {
+        _sites = MasterData.sites;
+        _inspectors = MasterData.inspectors;
+        _companies = ['指定なし', '松浦建設(株)'];
+        _machines = DatabaseService.getAllMachines();
+        _isLoading = false;
+      });
+      
+      // 重機リストをフィルタリング（サーバーから取得）
+      await _updateFilteredMachines();
+    }
+  }
+
+  /// 選択された現場に関連する点検データがある重機のみをフィルタリング
+  Future<void> _updateFilteredMachines() async {
+    if (_selectedSite == null) {
+      // 現場未選択時は全重機を表示
+      setState(() {
+        _filteredMachines = _machines;
+      });
+    } else {
+      // サーバーAPIから全媒体の点検記録を取得
+      final cloudSync = CloudSyncService();
+      final records = await cloudSync.fetchAllRecordsFromCloud();
+      final siteRecords = records.where((r) => r.siteName == _selectedSite).toList();
+      
+      print('🔍 現場 "$_selectedSite" の点検記録: ${siteRecords.length}件（サーバーから取得）');
+      
+      // 点検データがある重機IDのセット
+      final machineIdsWithRecords = siteRecords.map((r) => r.machineId).toSet();
+      
+      print('🔍 点検データがある重機ID: ${machineIdsWithRecords.join(", ")}');
+      
+      // 該当する重機のみフィルタリング
+      setState(() {
+        _filteredMachines = _machines
+            .where((machine) => machineIdsWithRecords.contains(machine.id))
+            .toList();
+      });
+      
+      print('✅ フィルタリング後の重機数: ${_filteredMachines.length}');
+    }
   }
 
   Future<void> _exportExcel() async {
@@ -57,6 +128,7 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
         siteName: _selectedSite,
         companyName: _selectedCompanyName,
         responsiblePerson: _selectedResponsiblePerson,
+        primeContractorInspector: _selectedPrimeContractorInspector, // 元請点検責任者を追加
       );
 
       if (!mounted) return;
@@ -141,6 +213,22 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Dialog(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('マスタデータを読み込み中...'),
+            ],
+          ),
+        ),
+      );
+    }
+    
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -195,7 +283,7 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
 
             // 現場選択
             const Text(
-              '現場を選択（任意）',
+              '現場を選択',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -212,23 +300,25 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
                   vertical: 12,
                 ),
               ),
-              hint: const Text('現場を選択（任意）'),
+              hint: const Text('現場を選択'),
               items: [
                 const DropdownMenuItem(
                   value: null,
                   child: Text('指定なし'),
                 ),
-                ...MasterData.sites.map((site) {
+                ..._sites.map((site) {
                   return DropdownMenuItem(
                     value: site,
                     child: Text(site, style: const TextStyle(fontSize: 13)),
                   );
                 }),
               ],
-              onChanged: (value) {
+              onChanged: (value) async {
                 setState(() {
                   _selectedSite = value;
+                  _selectedMachineId = null; // 現場変更時は重機選択をリセット
                 });
+                await _updateFilteredMachines(); // 重機リストを更新（サーバーから取得）
               },
             ),
             const SizedBox(height: 20),
@@ -253,20 +343,33 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
                   vertical: 12,
                 ),
               ),
-              hint: const Text('重機を選択してください'),
-              items: _machines.map((machine) {
-                return DropdownMenuItem(
-                  value: machine.id,
-                  child: Text(
-                    '${machine.type} ${machine.unitNumber} (${machine.model})',
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedMachineId = value;
-                });
-              },
+              hint: Text(
+                _selectedSite != null && _filteredMachines.isEmpty
+                    ? '選択した現場に点検データがありません'
+                    : '重機を選択してください',
+                style: TextStyle(
+                  color: _selectedSite != null && _filteredMachines.isEmpty
+                      ? Colors.red
+                      : null,
+                ),
+              ),
+              items: _filteredMachines.isEmpty
+                  ? null
+                  : _filteredMachines.map((machine) {
+                      return DropdownMenuItem(
+                        value: machine.id,
+                        child: Text(
+                          '${machine.type} ${machine.unitNumber} (${machine.model})',
+                        ),
+                      );
+                    }).toList(),
+              onChanged: _filteredMachines.isEmpty
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _selectedMachineId = value;
+                      });
+                    },
             ),
             const SizedBox(height: 20),
 
@@ -291,15 +394,17 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
                 ),
               ),
               hint: const Text('所有会社名を選択（任意）'),
-              items: const [
-                DropdownMenuItem(
+              items: [
+                const DropdownMenuItem(
                   value: null,
                   child: Text('指定なし'),
                 ),
-                DropdownMenuItem(
-                  value: '松浦建設(株)',
-                  child: Text('松浦建設(株)', style: TextStyle(fontSize: 13)),
-                ),
+                ..._companies.map((company) {
+                  return DropdownMenuItem(
+                    value: company,
+                    child: Text(company, style: const TextStyle(fontSize: 13)),
+                  );
+                }),
               ],
               onChanged: (value) {
                 setState(() {
@@ -335,7 +440,7 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
                   value: null,
                   child: Text('指定なし'),
                 ),
-                ...MasterData.inspectors.map((inspector) {
+                ..._inspectors.map((inspector) {
                   return DropdownMenuItem(
                     value: inspector,
                     child: Text(inspector, style: const TextStyle(fontSize: 13)),
@@ -345,6 +450,47 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
               onChanged: (value) {
                 setState(() {
                   _selectedResponsiblePerson = value;
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // 元請点検責任者選択
+            const Text(
+              '元請点検責任者',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _selectedPrimeContractorInspector,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              hint: const Text('元請点検責任者を選択（任意）'),
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('指定なし'),
+                ),
+                ..._inspectors.map((inspector) {
+                  return DropdownMenuItem(
+                    value: inspector,
+                    child: Text(inspector, style: const TextStyle(fontSize: 13)),
+                  );
+                }),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedPrimeContractorInspector = value;
                 });
               },
             ),
