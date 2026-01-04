@@ -5,6 +5,7 @@ import '../models/inspection_item.dart';
 import '../models/inspection_record.dart';
 import '../services/database_service.dart';
 import '../services/cloud_sync_service.dart';
+import '../services/firestore_service.dart';
 
 class InspectionInputScreen extends StatefulWidget {
   final String siteName;
@@ -23,10 +24,48 @@ class InspectionInputScreen extends StatefulWidget {
 }
 
 class _InspectionInputScreenState extends State<InspectionInputScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
   final Map<String, InspectionResult> _results = {};
   final Map<String, TextEditingController> _memoControllers = {};
   final ImagePicker _picker = ImagePicker();
   DateTime _selectedDate = DateTime.now(); // 選択された点検日
+  
+  List<InspectionItem> _items = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInspectionItems();
+  }
+
+  Future<void> _loadInspectionItems() async {
+    if (widget.machine.typeId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('重機種類IDが取得できません')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final items = await _firestoreService.getInspectionItems(widget.machine.typeId!);
+      setState(() {
+        _items = items;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ 点検項目読み込みエラー: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('点検項目の読み込みに失敗しました: $e')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -35,8 +74,6 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
     }
     super.dispose();
   }
-
-  List<InspectionItem> get _items => widget.machine.getInspectionItems();
 
   int get _completedCount => _results.length;
   int get _totalCount => _items.length;
@@ -170,52 +207,44 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
   }
 
   Future<void> _saveInspection() async {
-    if (_completedCount < _totalCount) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('確認'),
-          content: Text(
-            '未入力の項目が${_totalCount - _completedCount}件あります。\nこのまま保存しますか?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('キャンセル'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('保存する'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed != true) return;
+    // 未入力項目を自動的に「良」に設定
+    for (final item in _items) {
+      if (!_results.containsKey(item.code)) {
+        _results[item.code] = InspectionResult(
+          itemCode: item.code,
+          isGood: true,
+        );
+      }
     }
 
-    final record = InspectionRecord(
-      id: '${widget.machine.id}_${DateTime.now().millisecondsSinceEpoch}',
-      siteName: widget.siteName,
-      inspectorName: widget.inspectorName,
-      machineId: widget.machine.id,
-      machineType: widget.machine.type,
-      machineModel: widget.machine.model,
-      machineUnitNumber: widget.machine.unitNumber,
-      inspectionDate: _selectedDate, // 選択された日付を使用
-      results: _results,
-    );
+    if (widget.machine.typeId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('重機種類IDが取得できません')),
+      );
+      return;
+    }
 
-    await DatabaseService.saveInspectionRecord(record);
-    print('✅ Inspection record saved locally: ${record.id}');
-
-    // クラウドに同期
     try {
-      final cloudSync = CloudSyncService();
-      await cloudSync.saveRecordToCloud(record);
-      print('✅ Record synced to cloud: ${record.id}');
+      await _firestoreService.saveInspection(
+        siteName: widget.siteName,
+        inspectorName: widget.inspectorName,
+        machineId: widget.machine.id,
+        machineTypeId: widget.machine.typeId!,
+        machineType: widget.machine.type,
+        machineModel: widget.machine.model,
+        machineUnitNumber: widget.machine.unitNumber,
+        date: _selectedDate,
+        results: _results,
+      );
+
+      print('✅ 点検記録を保存しました');
     } catch (e) {
-      print('⚠️ Cloud sync warning: $e');
+      print('❌ 保存エラー: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('保存に失敗しました: $e')),
+      );
+      return;
     }
 
     if (!mounted) return;
@@ -269,7 +298,14 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _buildInspectionForm(),
+    );
+  }
+
+  Widget _buildInspectionForm() {
+    return Column(
         children: [
           // ヘッダー情報
           Container(

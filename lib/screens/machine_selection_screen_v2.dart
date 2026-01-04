@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/machine.dart';
-import '../data/master_data.dart';
+import '../services/firestore_service.dart';
 import 'inspection_input_screen.dart';
 
 class MachineSelectionScreenV2 extends StatefulWidget {
@@ -18,8 +18,10 @@ class MachineSelectionScreenV2 extends StatefulWidget {
 }
 
 class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
-  // 重機データをMasterDataから取得
+  final FirestoreService _firestoreService = FirestoreService();
+  
   List<Machine> _allMachines = [];
+  bool _isLoading = true;
 
   String? _selectedType;
   String? _selectedModel;
@@ -28,7 +30,26 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
   @override
   void initState() {
     super.initState();
-    _allMachines = MasterData.getMachines();
+    _loadMachines();
+  }
+
+  Future<void> _loadMachines() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final machines = await _firestoreService.getMachines();
+      setState(() {
+        _allMachines = machines;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ 重機データ読み込みエラー: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   List<String> get _machineTypes {
@@ -123,7 +144,9 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
-      body: Container(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,

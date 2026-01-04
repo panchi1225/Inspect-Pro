@@ -210,6 +210,7 @@ class FirestoreService {
         machines.add(Machine(
           id: doc.id,
           type: data['typeName'] ?? '',
+          typeId: data['typeId'],
           model: data['model'] ?? '',
           unitNumber: data['unitNumber'] ?? '',
         ));
@@ -258,10 +259,13 @@ class FirestoreService {
 
   /// 点検記録を保存
   Future<bool> saveInspection({
-    required String siteId,
-    required String inspectorId,
+    required String siteName,
+    required String inspectorName,
     required String machineId,
     required String machineTypeId,
+    required String machineType,
+    required String machineModel,
+    required String machineUnitNumber,
     required DateTime date,
     required Map<String, InspectionResult> results,
     String? memo,
@@ -270,10 +274,13 @@ class FirestoreService {
       final resultsMap = results.map((key, value) => MapEntry(key, value.toMap()));
 
       await _firestore.collection('inspections').add({
-        'siteId': siteId,
-        'inspectorId': inspectorId,
+        'siteName': siteName,
+        'inspectorName': inspectorName,
         'machineId': machineId,
         'machineTypeId': machineTypeId,
+        'machineType': machineType,
+        'machineModel': machineModel,
+        'machineUnitNumber': machineUnitNumber,
         'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
         'results': resultsMap,
         'memo': memo ?? '',

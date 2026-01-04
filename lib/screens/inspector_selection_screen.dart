@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/master_data.dart';
-import '../services/master_data_service.dart';
+import '../services/firestore_service.dart';
 import 'machine_selection_screen_v2.dart';
 
 class InspectorSelectionScreen extends StatefulWidget {
@@ -17,7 +16,7 @@ class InspectorSelectionScreen extends StatefulWidget {
 }
 
 class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
-  final MasterDataService _masterDataService = MasterDataService();
+  final FirestoreService _firestoreService = FirestoreService();
   String? _selectedInspector;
   final TextEditingController _searchController = TextEditingController();
   List<String> _allInspectors = [];
@@ -36,7 +35,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     });
 
     try {
-      final inspectors = await _masterDataService.getInspectors();
+      final inspectors = await _firestoreService.getMasterData('inspectors');
       setState(() {
         _allInspectors = inspectors;
         _filteredInspectors = _allInspectors;

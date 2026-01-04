@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/master_data.dart';
-import '../services/master_data_service.dart';
+import '../services/firestore_service.dart';
 import 'inspector_selection_screen.dart';
 
 class SiteSelectionScreen extends StatefulWidget {
@@ -11,7 +10,7 @@ class SiteSelectionScreen extends StatefulWidget {
 }
 
 class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
-  final MasterDataService _masterDataService = MasterDataService();
+  final FirestoreService _firestoreService = FirestoreService();
   String? _selectedSite;
   final TextEditingController _searchController = TextEditingController();
   List<String> _allSites = [];
@@ -30,7 +29,7 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
     });
 
     try {
-      final sites = await _masterDataService.getSites();
+      final sites = await _firestoreService.getMasterData('sites');
       setState(() {
         _allSites = sites;
         _filteredSites = _allSites;
