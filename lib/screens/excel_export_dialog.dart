@@ -61,33 +61,33 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
     });
 
     try {
-      // マスタデータを取得
-      final sites = await _masterDataService.getSites();
-      final inspectors = await _masterDataService.getInspectors();
-      final companies = await _masterDataService.getCompanies();
+      // Firestoreからマスタデータを取得
+      final sites = await _firestoreService.getMasterData('sites');
+      final inspectors = await _firestoreService.getMasterData('inspectors');
+      final companies = await _firestoreService.getMasterData('companies');
+      final machines = await _firestoreService.getMachines();
+      
+      print('✅ Excel出力: 現場 ${sites.length}件, 点検者 ${inspectors.length}件, 会社 ${companies.length}件, 重機 ${machines.length}台');
 
       setState(() {
-        _sites = sites.isNotEmpty ? sites : MasterData.sites;
-        _inspectors = inspectors.isNotEmpty ? inspectors : MasterData.inspectors;
-        _companies = companies.isNotEmpty ? companies : ['指定なし', '松浦建設(株)'];
-        _machines = DatabaseService.getAllMachines();
+        _sites = sites.isNotEmpty ? sites : [];
+        _inspectors = inspectors.isNotEmpty ? inspectors : [];
+        _companies = companies.isNotEmpty ? companies : [];
+        _machines = machines;
         _isLoading = false;
       });
       
-      // 重機リストをフィルタリング（サーバーから取得）
+      // 重機リストをフィルタリング
       await _updateFilteredMachines();
     } catch (e) {
       print('❌ マスタデータ読み込みエラー: $e');
       setState(() {
-        _sites = MasterData.sites;
-        _inspectors = MasterData.inspectors;
-        _companies = ['指定なし', '松浦建設(株)'];
-        _machines = DatabaseService.getAllMachines();
+        _sites = [];
+        _inspectors = [];
+        _companies = [];
+        _machines = [];
         _isLoading = false;
       });
-      
-      // 重機リストをフィルタリング（サーバーから取得）
-      await _updateFilteredMachines();
     }
   }
 
