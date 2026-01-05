@@ -61,7 +61,26 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : _items.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64, color: Colors.orange),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '点検項目が取得できませんでした',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'machineTypeId: ${widget.record.machineTypeId}',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
         children: [
           // ヘッダー情報
           Container(
