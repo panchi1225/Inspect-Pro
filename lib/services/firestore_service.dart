@@ -297,17 +297,29 @@ class FirestoreService {
   /// 点検記録を取得（管理画面用）
   Future<List<Map<String, dynamic>>> getInspections() async {
     try {
+      // シンプルなクエリ（インデックス不要）
       final snapshot = await _firestore
           .collection('inspections')
-          .orderBy('date', descending: true)
           .limit(1000)
           .get();
 
-      return snapshot.docs.map((doc) {
+      final inspections = snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
         return data;
       }).toList();
+      
+      // クライアント側でソート（日付の降順）
+      inspections.sort((a, b) {
+        final aDate = a['date'] as String?;
+        final bDate = b['date'] as String?;
+        if (aDate == null && bDate == null) return 0;
+        if (aDate == null) return 1;
+        if (bDate == null) return -1;
+        return bDate.compareTo(aDate); // 降順（新しい→古い）
+      });
+      
+      return inspections;
     } catch (e) {
       print('❌ 点検記録取得エラー: $e');
       return [];

@@ -49,10 +49,30 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Future<void> _loadRecords() async {
     try {
-      // サーバーから直接取得（Hiveキャッシュを使わない）
-      final cloudSync = CloudSyncService();
-      final records = await cloudSync.fetchAllRecordsFromCloud();
-      print('✅ Admin screen loaded ${records.length} records from server');
+      // Firestoreから直接取得
+      final firestoreService = FirestoreService();
+      final inspectionData = await firestoreService.getInspections();
+      print('✅ Admin screen loaded ${inspectionData.length} records from Firestore');
+      
+      // Map<String, dynamic> から InspectionRecord に変換
+      final records = inspectionData.map((data) {
+        return InspectionRecord(
+          id: data['id'] ?? '',
+          siteName: data['siteName'] ?? '',
+          inspectorName: data['inspectorName'] ?? '',
+          machineId: data['machineId'] ?? '',
+          machineType: data['machineType'] ?? '',
+          machineModel: data['machineModel'] ?? '',
+          machineUnitNumber: data['machineUnitNumber'] ?? '',
+          inspectionDate: _parseDate(data['date']),
+          results: (data['results'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              InspectionResult.fromMap(value as Map<String, dynamic>),
+            ),
+          ) ?? {},
+        );
+      }).toList();
       
       setState(() {
         _records = records;
@@ -74,6 +94,18 @@ class _AdminScreenState extends State<AdminScreen> {
         _applyFilters();
       });
     }
+  }
+  
+  DateTime _parseDate(dynamic dateValue) {
+    if (dateValue == null) return DateTime.now();
+    if (dateValue is String) {
+      try {
+        return DateTime.parse(dateValue);
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    return DateTime.now();
   }
 
   void _applyFilters() {
