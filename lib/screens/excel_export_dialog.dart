@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/machine.dart';
+import '../models/inspection_record.dart';
 import '../data/master_data.dart';
 import '../services/database_service.dart';
 import '../services/python_excel_service.dart';
 import '../services/master_data_service.dart';
-import '../services/cloud_sync_service.dart';
+import '../services/firestore_service.dart';
 
 class ExcelExportDialog extends StatefulWidget {
   final bool usePythonBackend;
@@ -18,6 +19,7 @@ class ExcelExportDialog extends StatefulWidget {
 
 class _ExcelExportDialogState extends State<ExcelExportDialog> {
   final MasterDataService _masterDataService = MasterDataService();
+  final FirestoreService _firestoreService = FirestoreService();
   
   String? _selectedSite;
   String? _selectedMachineId;
@@ -39,6 +41,18 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  DateTime _parseDate(dynamic dateValue) {
+    if (dateValue == null) return DateTime.now();
+    if (dateValue is String) {
+      try {
+        return DateTime.parse(dateValue);
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    return DateTime.now();
   }
 
   Future<void> _loadData() async {
@@ -85,12 +99,33 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
         _filteredMachines = _machines;
       });
     } else {
-      // サーバーAPIから全媒体の点検記録を取得
-      final cloudSync = CloudSyncService();
-      final records = await cloudSync.fetchAllRecordsFromCloud();
+      // Firestoreから点検記録を取得
+      final inspectionData = await _firestoreService.getInspections();
+      
+      // Map<String, dynamic>からInspectionRecordに変換
+      final records = inspectionData.map((data) {
+        return InspectionRecord(
+          id: data['id'] ?? '',
+          siteName: data['siteName'] ?? '',
+          inspectorName: data['inspectorName'] ?? '',
+          machineId: data['machineId'] ?? '',
+          machineType: data['machineType'] ?? '',
+          machineModel: data['machineModel'] ?? '',
+          machineUnitNumber: data['machineUnitNumber'] ?? '',
+          inspectionDate: _parseDate(data['date']),
+          machineTypeId: data['machineTypeId'] ?? '',
+          results: (data['results'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              InspectionResult.fromMap(value as Map<String, dynamic>),
+            ),
+          ) ?? {},
+        );
+      }).toList();
+      
       final siteRecords = records.where((r) => r.siteName == _selectedSite).toList();
       
-      print('🔍 現場 "$_selectedSite" の点検記録: ${siteRecords.length}件（サーバーから取得）');
+      print('🔍 現場 "$_selectedSite" の点検記録: ${siteRecords.length}件（Firestoreから取得）');
       
       // 点検データがある重機IDのセット
       final machineIdsWithRecords = siteRecords.map((r) => r.machineId).toSet();

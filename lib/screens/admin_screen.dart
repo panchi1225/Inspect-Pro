@@ -65,6 +65,7 @@ class _AdminScreenState extends State<AdminScreen> {
           machineModel: data['machineModel'] ?? '',
           machineUnitNumber: data['machineUnitNumber'] ?? '',
           inspectionDate: _parseDate(data['date']),
+          machineTypeId: data['machineTypeId'] ?? '', // machineTypeIdを追加
           results: (data['results'] as Map<String, dynamic>?)?.map(
             (key, value) => MapEntry(
               key,

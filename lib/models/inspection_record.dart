@@ -7,6 +7,7 @@ class InspectionRecord {
   final String machineModel;
   final String machineUnitNumber;
   final DateTime inspectionDate;
+  final String machineTypeId; // 点検項目取得用のID
   final Map<String, InspectionResult> results; // 点検項目コード -> 結果
 
   InspectionRecord({
@@ -18,6 +19,7 @@ class InspectionRecord {
     required this.machineModel,
     required this.machineUnitNumber,
     required this.inspectionDate,
+    this.machineTypeId = '', // デフォルト値
     required this.results,
   });
 
@@ -32,6 +34,7 @@ class InspectionRecord {
       machineModel: map['machineModel'] as String,
       machineUnitNumber: map['machineUnitNumber'] as String,
       inspectionDate: DateTime.parse(map['inspectionDate'] as String),
+      machineTypeId: map['machineTypeId'] as String? ?? '',
       results: resultsMap.map(
         (key, value) => MapEntry(
           key,
@@ -51,6 +54,7 @@ class InspectionRecord {
       'machineModel': machineModel,
       'machineUnitNumber': machineUnitNumber,
       'inspectionDate': inspectionDate.toIso8601String(),
+      'machineTypeId': machineTypeId,
       'results': results.map((key, value) => MapEntry(key, value.toMap())),
     };
   }

@@ -1,25 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/inspection_record.dart';
-import '../services/database_service.dart';
+import '../models/inspection_item.dart';
+import '../services/firestore_service.dart';
 
-class RecordDetailScreen extends StatelessWidget {
+class RecordDetailScreen extends StatefulWidget {
   final InspectionRecord record;
 
   const RecordDetailScreen({super.key, required this.record});
 
   @override
+  State<RecordDetailScreen> createState() => _RecordDetailScreenState();
+}
+
+class _RecordDetailScreenState extends State<RecordDetailScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
+  List<InspectionItem> _items = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInspectionItems();
+  }
+
+  Future<void> _loadInspectionItems() async {
+    try {
+      // machineTypeIdから点検項目を取得
+      if (widget.record.machineTypeId.isEmpty) {
+        print('⚠️ machineTypeIdが空です');
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final items = await _firestoreService.getInspectionItems(
+        widget.record.machineTypeId,
+      );
+      setState(() {
+        _items = items;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ 点検項目取得エラー: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('yyyy年MM月dd日'); // 日付のみ、時間を削除
-    final machine = DatabaseService.getMachineById(record.machineId);
-    final items = machine?.getInspectionItems() ?? [];
+    final dateFormat = DateFormat('yyyy年MM月dd日');
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('点検記録詳細'),
         elevation: 0,
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
         children: [
           // ヘッダー情報
           Container(
@@ -30,7 +72,7 @@ class RecordDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${record.machineType} ${record.machineUnitNumber}',
+                  '${widget.record.machineType} ${widget.record.machineUnitNumber}',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -44,7 +86,7 @@ class RecordDetailScreen extends StatelessWidget {
                     const Icon(Icons.location_on, color: Colors.white70, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      record.siteName.isNotEmpty ? record.siteName : '現場未指定',
+                      widget.record.siteName.isNotEmpty ? widget.record.siteName : '現場未指定',
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white70,
@@ -58,7 +100,7 @@ class RecordDetailScreen extends StatelessWidget {
                     const Icon(Icons.person, color: Colors.white70, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      record.inspectorName,
+                      widget.record.inspectorName,
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white70,
@@ -69,7 +111,7 @@ class RecordDetailScreen extends StatelessWidget {
                         color: Colors.white70, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      dateFormat.format(record.inspectionDate),
+                      dateFormat.format(widget.record.inspectionDate),
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white70,
@@ -85,10 +127,10 @@ class RecordDetailScreen extends StatelessWidget {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: items.length,
+              itemCount: _items.length,
               itemBuilder: (context, index) {
-                final item = items[index];
-                final result = record.results[item.code];
+                final item = _items[index];
+                final result = widget.record.results[item.code];
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
