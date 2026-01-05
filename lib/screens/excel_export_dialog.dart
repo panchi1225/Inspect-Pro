@@ -5,6 +5,7 @@ import '../models/inspection_record.dart';
 import '../data/master_data.dart';
 import '../services/database_service.dart';
 import '../services/python_excel_service.dart';
+import '../services/web_excel_service.dart';
 import '../services/master_data_service.dart';
 import '../services/firestore_service.dart';
 
@@ -156,15 +157,26 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
     });
 
     try {
-      final filePath = await PythonExcelService.generateMonthlyReportWithPython(
-        machineId: _selectedMachineId!,
-        year: _selectedYear,
-        month: _selectedMonth,
-        siteName: _selectedSite,
-        companyName: _selectedCompanyName,
-        responsiblePerson: _selectedResponsiblePerson,
-        primeContractorInspector: _selectedPrimeContractorInspector, // 元請点検責任者を追加
-      );
+      // Web環境ではクライアント側でExcel生成、それ以外はPython API使用
+      final filePath = kIsWeb
+          ? await WebExcelService.generateMonthlyReport(
+              machineId: _selectedMachineId!,
+              year: _selectedYear,
+              month: _selectedMonth,
+              siteName: _selectedSite,
+              companyName: _selectedCompanyName,
+              responsiblePerson: _selectedResponsiblePerson,
+              primeContractorInspector: _selectedPrimeContractorInspector,
+            )
+          : await PythonExcelService.generateMonthlyReportWithPython(
+              machineId: _selectedMachineId!,
+              year: _selectedYear,
+              month: _selectedMonth,
+              siteName: _selectedSite,
+              companyName: _selectedCompanyName,
+              responsiblePerson: _selectedResponsiblePerson,
+              primeContractorInspector: _selectedPrimeContractorInspector,
+            );
 
       if (!mounted) return;
 
