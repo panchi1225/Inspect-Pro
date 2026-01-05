@@ -219,7 +219,7 @@ class WebExcelService {
         String colName = _getColumnName(38 + day - 1); // AM列から開始
         
         // 日付ヘッダー（9行目）
-        _setCell(sheet, '$colName\9', day.toString(), fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
+        _setCell(sheet, '${colName}9', day.toString(), fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
         
         // この日の点検記録を探す
         var dayRecord = monthRecords.where((r) => r.inspectionDate.day == day).toList();
@@ -228,8 +228,8 @@ class WebExcelService {
           var record = dayRecord.first;
           
           // 点検者名（24～26行結合）
-          sheet.merge(CellIndex.indexByString('$colName\24'), CellIndex.indexByString('$colName\26'));
-          _setCell(sheet, '$colName\24', record.inspectorName, fontSize: 9, hAlign: HorizontalAlign.Center);
+          sheet.merge(CellIndex.indexByString('${colName}24'), CellIndex.indexByString('${colName}26'));
+          _setCell(sheet, '${colName}24', record.inspectorName, fontSize: 9, hAlign: HorizontalAlign.Center);
           
           // 点検結果（10～23行）
           int resultRow = 10;
@@ -245,7 +245,7 @@ class WebExcelService {
               fontColor = ExcelColor.fromHexString(isGood ? '#00AA00' : '#FF0000');
             }
             
-            _setCell(sheet, '$colName\$resultRow', value, 
+            _setCell(sheet, '$colName$resultRow', value, 
               fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, fontColor: fontColor);
             
             resultRow++;
@@ -300,13 +300,23 @@ class WebExcelService {
       _setCell(sheet, 'BO28', '作業所長', fontSize: 11, hAlign: HorizontalAlign.Center);
       
       // 29～31行: 補修情報入力欄
-      for (int r = 29; r <= 31; r++) {
-        sheet.merge(CellIndex.indexByString('AK$r'), CellIndex.indexByString('BE$r'));
-        sheet.merge(CellIndex.indexByString('BF$r'), CellIndex.indexByString('BH$r'));
-        sheet.merge(CellIndex.indexByString('BI$r'), CellIndex.indexByString('BK$r'));
-        sheet.merge(CellIndex.indexByString('BL$r'), CellIndex.indexByString('BN$r'));
-        sheet.merge(CellIndex.indexByString('BO$r'), CellIndex.indexByString('BQ$r'));
-      }
+      sheet.merge(CellIndex.indexByString('AK29'), CellIndex.indexByString('BE29'));
+      sheet.merge(CellIndex.indexByString('BF29'), CellIndex.indexByString('BH29'));
+      sheet.merge(CellIndex.indexByString('BI29'), CellIndex.indexByString('BK29'));
+      sheet.merge(CellIndex.indexByString('BL29'), CellIndex.indexByString('BN29'));
+      sheet.merge(CellIndex.indexByString('BO29'), CellIndex.indexByString('BQ29'));
+      
+      sheet.merge(CellIndex.indexByString('AK30'), CellIndex.indexByString('BE30'));
+      sheet.merge(CellIndex.indexByString('BF30'), CellIndex.indexByString('BH30'));
+      sheet.merge(CellIndex.indexByString('BI30'), CellIndex.indexByString('BK30'));
+      sheet.merge(CellIndex.indexByString('BL30'), CellIndex.indexByString('BN30'));
+      sheet.merge(CellIndex.indexByString('BO30'), CellIndex.indexByString('BQ30'));
+      
+      sheet.merge(CellIndex.indexByString('AK31'), CellIndex.indexByString('BE31'));
+      sheet.merge(CellIndex.indexByString('BF31'), CellIndex.indexByString('BH31'));
+      sheet.merge(CellIndex.indexByString('BI31'), CellIndex.indexByString('BK31'));
+      sheet.merge(CellIndex.indexByString('BL31'), CellIndex.indexByString('BN31'));
+      sheet.merge(CellIndex.indexByString('BO31'), CellIndex.indexByString('BQ31'));
       
       // ========================================
       // 12. 罫線の追加（指示に従って実装）
