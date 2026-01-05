@@ -328,15 +328,16 @@ class FirestoreService {
           .where('isActive', isEqualTo: true)
           .get();
 
-      // クライアント側でソート（createdAtがnullの場合は末尾へ）
+      // クライアント側でソート（createdAtがnullの場合は先頭へ）
+      // 最後に追加したものが下部に表示されるよう昇順ソート
       final docs = snapshot.docs.toList();
       docs.sort((a, b) {
         final aTime = a.data()['createdAt'];
         final bTime = b.data()['createdAt'];
         if (aTime == null && bTime == null) return 0;
-        if (aTime == null) return 1;
-        if (bTime == null) return -1;
-        return bTime.compareTo(aTime); // 降順
+        if (aTime == null) return -1; // nullは先頭
+        if (bTime == null) return 1;
+        return aTime.compareTo(bTime); // 昇順（古い→新しい）
       });
 
       return docs

@@ -73,6 +73,15 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
         .where((m) => m.type == _selectedType && m.model == _selectedModel)
         .map((m) => m.unitNumber)
         .toList();
+    
+    // 数値順にソート（1号機、2号機、...、10号機）
+    units.sort((a, b) {
+      // 号機番号を抽出（例: "1号機" → 1）
+      final aNum = int.tryParse(a.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final bNum = int.tryParse(b.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      return aNum.compareTo(bNum);
+    });
+    
     return units;
   }
 
