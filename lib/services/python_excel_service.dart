@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-import 'database_service.dart';
-import 'cloud_sync_service.dart';
+import '../models/inspection_record.dart';
+import '../models/inspection_item.dart';
+import 'firestore_service.dart';
 
 // 条件付きimport: Web/Mobile別のExcelダウンロード実装
 import 'excel_download_stub.dart'
@@ -25,18 +26,38 @@ class PythonExcelService {
       print('🐍 Python Excel生成開始（画像・罫線完全対応版）');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       
+      final firestoreService = FirestoreService();
+      
       // 1. 重機情報を取得
-      final machine = DatabaseService.getMachineById(machineId);
+      final machine = await firestoreService.getMachineById(machineId);
       if (machine == null) {
         print('❌ エラー: 重機が見つかりません (ID: $machineId)');
         return null;
       }
       print('✅ 重機: ${machine.model} ${machine.unitNumber}');
 
-      // 2. 点検記録を取得（サーバーAPIから全媒体のデータを取得）
-      final cloudSync = CloudSyncService();
-      final allRecords = await cloudSync.fetchAllRecordsFromCloud();
-      print('✅ 全記録数（サーバー）: ${allRecords.length}件');
+      // 2. 点検記録を取得（Firestoreから）
+      final inspectionData = await firestoreService.getInspections();
+      final allRecords = inspectionData.map((data) {
+        return InspectionRecord(
+          id: data['id'] ?? '',
+          siteName: data['siteName'] ?? '',
+          inspectorName: data['inspectorName'] ?? '',
+          machineId: data['machineId'] ?? '',
+          machineType: data['machineType'] ?? '',
+          machineModel: data['machineModel'] ?? '',
+          machineUnitNumber: data['machineUnitNumber'] ?? '',
+          inspectionDate: _parseDate(data['date']),
+          machineTypeId: data['machineTypeId'] ?? '',
+          results: (data['results'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              InspectionResult.fromMap(value as Map<String, dynamic>),
+            ),
+          ) ?? {},
+        );
+      }).toList();
+      print('✅ 全記録数（Firestore）: ${allRecords.length}件');
       
       final monthRecords = allRecords.where((r) {
         // machineId、年月、現場名がすべて一致するデータのみ
@@ -48,7 +69,11 @@ class PythonExcelService {
       print('✅ 対象月の記録数: ${monthRecords.length}件 (現場: ${siteName ?? "指定なし"})');
 
       // 3. 点検項目を取得
-      final items = machine.getInspectionItems();
+      if (machine.typeId == null) {
+        print('❌ エラー: 重機のtypeIdがありません');
+        return null;
+      }
+      final items = await firestoreService.getInspectionItems(machine.typeId!);
       print('✅ 点検項目数: ${items.length}項目');
 
       // 4. JSONデータ作成
@@ -174,6 +199,19 @@ class PythonExcelService {
     } catch (e) {
       print('❌ モバイル環境でのPython呼び出しエラー: $e');
       return null;
+    }
+  }
+
+  /// 日付文字列をDateTimeに変換（デフォルトは今日）
+  static DateTime _parseDate(dynamic dateValue) {
+    if (dateValue == null) return DateTime.now();
+    try {
+      if (dateValue is String) {
+        return DateTime.parse(dateValue);
+      }
+      return DateTime.now();
+    } catch (e) {
+      return DateTime.now();
     }
   }
 }

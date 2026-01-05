@@ -223,6 +223,29 @@ class FirestoreService {
     }
   }
 
+  /// IDで重機を取得
+  Future<Machine?> getMachineById(String id) async {
+    try {
+      final doc = await _firestore.collection('machines').doc(id).get();
+      if (!doc.exists) {
+        print('⚠️ 重機が見つかりません: $id');
+        return null;
+      }
+      
+      final data = doc.data()!;
+      return Machine(
+        id: doc.id,
+        type: data['typeName'] ?? '',
+        typeId: data['typeId'],
+        model: data['model'] ?? '',
+        unitNumber: data['unitNumber'] ?? '',
+      );
+    } catch (e) {
+      print('❌ 重機取得エラー (ID: $id): $e');
+      return null;
+    }
+  }
+
   /// 重機種類別の点検項目を取得
   Future<List<InspectionItem>> getInspectionItems(String typeId) async {
     try {
