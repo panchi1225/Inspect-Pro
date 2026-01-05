@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyBE5E6wBmViEU-2wdppL65uU21iLLKPWZk',
-    appId: '1:706421185862:web:PLACEHOLDER',
+    appId: '1:706421185862:web:c0256bf0a9d7b76f345947',  // 一時的にAndroid IDを使用
     messagingSenderId: '706421185862',
     projectId: 'inspect-pro-22e0a',
     authDomain: 'inspect-pro-22e0a.firebaseapp.com',
