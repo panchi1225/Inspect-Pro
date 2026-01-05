@@ -15,8 +15,11 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     print('✅ Firebase初期化完了');
+    print('📊 Firebase Project: ${DefaultFirebaseOptions.currentPlatform.projectId}');
+    print('🌐 Firebase App ID: ${DefaultFirebaseOptions.currentPlatform.appId}');
   } catch (e) {
-    print('⚠️ Firebase initialization warning: $e');
+    print('❌ Firebase initialization error: $e');
+    print('⚠️ アプリは起動しますが、Firestoreへの接続ができません');
   }
   
   // データベースの初期化
