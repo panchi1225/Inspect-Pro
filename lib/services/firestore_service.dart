@@ -322,13 +322,24 @@ class FirestoreService {
   /// collectionName: 'sites', 'inspectors', 'companies'
   Future<List<String>> getMasterData(String collectionName) async {
     try {
+      // 複合インデックス不要のシンプルなクエリ
       final snapshot = await _firestore
           .collection(collectionName)
           .where('isActive', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
           .get();
 
-      return snapshot.docs
+      // クライアント側でソート（createdAtがnullの場合は末尾へ）
+      final docs = snapshot.docs.toList();
+      docs.sort((a, b) {
+        final aTime = a.data()['createdAt'];
+        final bTime = b.data()['createdAt'];
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        return bTime.compareTo(aTime); // 降順
+      });
+
+      return docs
           .map((doc) => doc.data()['name'] as String)
           .toList();
     } catch (e) {
