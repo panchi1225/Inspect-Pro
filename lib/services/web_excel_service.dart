@@ -381,6 +381,27 @@ class WebExcelService {
       print('   bold: ${a7CellAfterBorders.cellStyle?.isBold}');
       print('   fontSize: ${a7CellAfterBorders.cellStyle?.fontSize}');
       
+      // ⚠️ 重要: 罫線処理後にA7セルの下線を再設定
+      var a7CellFinal = sheet.cell(CellIndex.indexByString('A7'));
+      var a7CurrentStyle = a7CellFinal.cellStyle;
+      if (a7CurrentStyle != null) {
+        a7CellFinal.cellStyle = CellStyle(
+          fontFamily: a7CurrentStyle.fontFamily,
+          fontSize: 12,
+          bold: false,
+          underline: Underline.Single,  // 下線を強制的に再設定
+          horizontalAlign: HorizontalAlign.Left,
+          verticalAlign: VerticalAlign.Bottom,
+          fontColorHex: a7CurrentStyle.fontColor,
+          backgroundColorHex: a7CurrentStyle.backgroundColor,
+          topBorder: a7CurrentStyle.topBorder,
+          bottomBorder: a7CurrentStyle.bottomBorder,
+          leftBorder: a7CurrentStyle.leftBorder,
+          rightBorder: a7CurrentStyle.rightBorder,
+        );
+        print('✅ A7セル下線を罫線処理後に再設定完了');
+      }
+      
       print('✅ Excel生成完了');
       
       // ファイル保存（encode()を使って自動ダウンロードを防ぐ）
