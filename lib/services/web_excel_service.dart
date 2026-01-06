@@ -259,10 +259,9 @@ class WebExcelService {
         if (dayRecord.isNotEmpty) {
           var record = dayRecord.first;
           
-          // 点検者名（24～26行結合、縦書き風に改行）
+          // 点検者名（24～26行結合、横書き）
           sheet.merge(CellIndex.indexByString('${colName}24'), CellIndex.indexByString('${colName}26'));
-          String verticalName = record.inspectorName.split('').join('\n');
-          _setCell(sheet, '${colName}24', verticalName, fontSize: 9, hAlign: HorizontalAlign.Center);
+          _setCell(sheet, '${colName}24', record.inspectorName, fontSize: 9, hAlign: HorizontalAlign.Center);
           
           // 点検結果（10～23行）
           int resultRow = 10;
@@ -289,15 +288,15 @@ class WebExcelService {
       // ========================================
       // 10. 24～26行（点検時の注記）
       // ========================================
-      _setCell(sheet, 'A24', '１．点検時', fontSize: 14, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
+      _setCell(sheet, 'A24', '１．点検時', fontSize: 14, vAlign: VerticalAlign.Center);
       _setCell(sheet, 'B25', 'チェック記号', fontSize: 14);
       _setCell(sheet, 'J24', '良好…○　要調整、修理…×（使用禁止）　・該当なし…－', fontSize: 14);
       _setCell(sheet, 'J25', '調整または補修したとき…×を○で囲む', fontSize: 14);
-      _setCell(sheet, 'A26', '２．元請点検責任者は毎月上旬・中旬・下旬毎に１回は点検状況を確認すること。', fontSize: 14, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
+      _setCell(sheet, 'A26', '２．元請点検責任者は毎月上旬・中旬・下旬毎に１回は点検状況を確認すること。', fontSize: 14, vAlign: VerticalAlign.Center);
       
-      // AL24～AL26: 点検者ラベル（縦書き風）
+      // AL24～AL26: 点検者ラベル（横書き）
       sheet.merge(CellIndex.indexByString('AL24'), CellIndex.indexByString('AL26'));
-      _setCell(sheet, 'AL24', '点\n検\n者', fontSize: 12, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
+      _setCell(sheet, 'AL24', '点検者', fontSize: 12, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
       
       // ========================================
       // 11. 27～31行（補修情報エリア）
