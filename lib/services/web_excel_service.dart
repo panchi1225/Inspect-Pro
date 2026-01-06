@@ -208,14 +208,12 @@ class WebExcelService {
       // ========================================
       
       // A9～Q9: 点検項目（中央配置）
-      // ⚠️ テスト: 結合を解除してフォント実装を確認
       _setCell(sheet, 'A9', '点検項目', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center, bgColor: '#D3D3D3');
-      // sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9')); // 結合を一時的に無効化
+      sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9'));
       
       // R9～AL9: 点検ポイント（中央配置）
-      // ⚠️ テスト: 結合を解除してフォント実装を確認
       _setCell(sheet, 'R9', '点検ポイント', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center, bgColor: '#D3D3D3');
-      // sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9')); // 結合を一時的に無効化
+      sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9'));
       
       // ========================================
       // 9. 点検項目の入力（A10～A23: ★、B10～B23: 項目名、R10～R23: 点検ポイント）
