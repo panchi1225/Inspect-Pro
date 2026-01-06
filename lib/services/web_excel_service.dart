@@ -160,10 +160,12 @@ class WebExcelService {
         fontSize: 22, bold: true, italic: true, vAlign: VerticalAlign.Bottom);
       
       // A7: 注意事項（下線追加）
-      // A7セルに下線を確実に適用
+      // A7セルに下線を確実に適用（複数回設定を試みる）
       var cellA7 = sheet.cell(CellIndex.indexByString('A7'));
       cellA7.value = TextCellValue('※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること');
-      cellA7.cellStyle = CellStyle(
+      
+      // 方法1: CellStyleで設定
+      var a7Style = CellStyle(
         fontFamily: 'HG明朝E',
         fontSize: 16,
         bold: true,
@@ -171,7 +173,23 @@ class WebExcelService {
         horizontalAlign: HorizontalAlign.Left,
         verticalAlign: VerticalAlign.Bottom,
       );
-      print('🔍 A7セル下線設定: underline=${cellA7.cellStyle?.underline}');
+      cellA7.cellStyle = a7Style;
+      
+      // 方法2: 再度同じスタイルを適用（強制上書き）
+      sheet.updateCell(
+        CellIndex.indexByString('A7'),
+        TextCellValue('※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること'),
+        cellStyle: CellStyle(
+          fontFamily: 'HG明朝E',
+          fontSize: 16,
+          bold: true,
+          underline: Underline.Single,
+          horizontalAlign: HorizontalAlign.Left,
+          verticalAlign: VerticalAlign.Bottom,
+        ),
+      );
+      
+      print('🔍 A7セル下線設定完了: underline=${sheet.cell(CellIndex.indexByString('A7')).cellStyle?.underline}');
       
       // AM3～AW3: 所有会社名ラベル（太字）
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
@@ -502,7 +520,10 @@ class WebExcelService {
   
   /// 罫線を追加
   static void _addAllBorders(Sheet sheet) {
-    // 指示された罫線を追加
+    // ========================================
+    // 既存の罫線
+    // ========================================
+    
     // A9～BQ9の上部に罫線
     for (int col = 0; col <= 68; col++) {
       _addBorder(sheet, col, 8, top: true);
@@ -523,7 +544,87 @@ class WebExcelService {
       _addBorder(sheet, 68, row, right: true);
     }
     
-    // その他の罫線は省略（必要に応じて追加）
+    // ========================================
+    // 新規追加の罫線
+    // ========================================
+    
+    // A3、A4セルの左に罫線
+    _addBorder(sheet, 0, 2, left: true);  // A3 (row index 2)
+    _addBorder(sheet, 0, 3, left: true);  // A4 (row index 3)
+    
+    // A3～Z3までのセルの上部に罫線 (col 0-25)
+    for (int col = 0; col <= 25; col++) {
+      _addBorder(sheet, col, 2, top: true);
+    }
+    
+    // A4～Z4までのセルの下部に罫線 (col 0-25)
+    for (int col = 0; col <= 25; col++) {
+      _addBorder(sheet, col, 3, bottom: true);
+    }
+    
+    // AM3～AM5までのセルの左に罫線 (AM=col 38, rows 2-4)
+    for (int row = 2; row <= 4; row++) {
+      _addBorder(sheet, 38, row, left: true);
+    }
+    
+    // AM3～BL3までのセルの上部に罫線 (col 38-63)
+    for (int col = 38; col <= 63; col++) {
+      _addBorder(sheet, col, 2, top: true);
+    }
+    
+    // BL3～BL5のセルの右側に罫線 (BL=col 63, rows 2-4)
+    for (int row = 2; row <= 4; row++) {
+      _addBorder(sheet, 63, row, right: true);
+    }
+    
+    // AM5～BL5までのセルの下部に罫線 (col 38-63)
+    for (int col = 38; col <= 63; col++) {
+      _addBorder(sheet, col, 4, bottom: true);
+    }
+    
+    // BN3～BN5までのセルの左に罫線 (BN=col 65, rows 2-4)
+    for (int row = 2; row <= 4; row++) {
+      _addBorder(sheet, 65, row, left: true);
+    }
+    
+    // BN3～BQ3までのセルの上部に罫線 (col 65-68)
+    for (int col = 65; col <= 68; col++) {
+      _addBorder(sheet, col, 2, top: true);
+    }
+    
+    // BQ3～BQ5までのセルの右側に罫線 (BQ=col 68, rows 2-4)
+    for (int row = 2; row <= 4; row++) {
+      _addBorder(sheet, 68, row, right: true);
+    }
+    
+    // BN5～BQ5までのセルの下部に罫線 (col 65-68)
+    for (int col = 65; col <= 68; col++) {
+      _addBorder(sheet, col, 4, bottom: true);
+    }
+    
+    // 行9～23までの列A～BQまでのセルの下部に罫線 (rows 8-22, col 0-68)
+    for (int row = 8; row <= 22; row++) {
+      for (int col = 0; col <= 68; col++) {
+        _addBorder(sheet, col, row, bottom: true);
+      }
+    }
+    
+    // 行25の列A～AKまでのセルの下部に罫線 (row 24, col 0-36)
+    for (int col = 0; col <= 36; col++) {
+      _addBorder(sheet, col, 24, bottom: true);
+    }
+    
+    // 行26の列A～BQまでのセルの下部に罫線 (row 25, col 0-68)
+    for (int col = 0; col <= 68; col++) {
+      _addBorder(sheet, col, 25, bottom: true);
+    }
+    
+    // 行27～30までの列AK～BQまでのセルの下部に罫線 (rows 26-29, col 36-68)
+    for (int row = 26; row <= 29; row++) {
+      for (int col = 36; col <= 68; col++) {
+        _addBorder(sheet, col, row, bottom: true);
+      }
+    }
   }
   
   /// セルに罫線を追加
