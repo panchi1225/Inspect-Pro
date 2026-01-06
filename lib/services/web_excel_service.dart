@@ -208,44 +208,14 @@ class WebExcelService {
       // ========================================
       
       // A9～Q9: 点検項目（中央配置）
-      // 結合範囲の全セルにスタイルを適用（A9～Q9 = 列0～16）
-      for (int col = 0; col <= 16; col++) {
-        String colName = _getColumnName(col);
-        var cell = sheet.cell(CellIndex.indexByString('${colName}9'));
-        if (col == 0) {
-          cell.value = TextCellValue('点検項目');
-        }
-        cell.cellStyle = CellStyle(
-          fontFamily: 'HG明朝E',
-          fontSize: 14,
-          bold: true,
-          horizontalAlign: HorizontalAlign.Center,
-          verticalAlign: VerticalAlign.Center,
-          backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
-        );
-      }
-      // 結合
-      sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9'));
+      // ⚠️ テスト: 結合を解除してフォント実装を確認
+      _setCell(sheet, 'A9', '点検項目', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center, bgColor: '#D3D3D3');
+      // sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9')); // 結合を一時的に無効化
       
       // R9～AL9: 点検ポイント（中央配置）
-      // 結合範囲の全セルにスタイルを適用（R9～AL9 = 列17～37）
-      for (int col = 17; col <= 37; col++) {
-        String colName = _getColumnName(col);
-        var cell = sheet.cell(CellIndex.indexByString('${colName}9'));
-        if (col == 17) {
-          cell.value = TextCellValue('点検ポイント');
-        }
-        cell.cellStyle = CellStyle(
-          fontFamily: 'HG明朝E',
-          fontSize: 14,
-          bold: true,
-          horizontalAlign: HorizontalAlign.Center,
-          verticalAlign: VerticalAlign.Center,
-          backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
-        );
-      }
-      // 結合
-      sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9'));
+      // ⚠️ テスト: 結合を解除してフォント実装を確認
+      _setCell(sheet, 'R9', '点検ポイント', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center, bgColor: '#D3D3D3');
+      // sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9')); // 結合を一時的に無効化
       
       // ========================================
       // 9. 点検項目の入力（A10～A23: ★、B10～B23: 項目名、R10～R23: 点検ポイント）
@@ -275,6 +245,11 @@ class WebExcelService {
       
       for (int day = 1; day <= daysInMonth; day++) {
         String colName = _getColumnName(38 + day - 1); // AM列から開始
+        
+        // デバッグ: 最初の日付ヘッダーをログ出力
+        if (day == 1) {
+          print('🔍 日付ヘッダー最初のセル: ${colName}9 (day=$day)');
+        }
         
         // 日付ヘッダー（9行目） - 太字、中央配置、薄いグレー背景
         _setCell(sheet, '${colName}9', day.toString(), fontSize: 11, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center,
@@ -432,9 +407,17 @@ class WebExcelService {
     var cell = sheet.cell(CellIndex.indexByString(cellAddress));
     cell.value = TextCellValue(value);
     
-    // スタイルを段階的に構築（すべてのセルにHG明朝Eフォントを適用）
-    if (cellAddress == 'A9' || cellAddress == 'R9' || cellAddress == 'A24' || cellAddress == 'A26' || cellAddress.endsWith('9') && cellAddress.length >= 3) {
-      print('🔍 セル$cellAddress のフォント設定: HG明朝E');
+    // デバッグログ: 詳細なパラメータ確認
+    if (cellAddress == 'A9' || cellAddress == 'R9' || cellAddress == 'A24' || cellAddress == 'A26') {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔍 _setCell呼び出し: セル=$cellAddress');
+      print('   値: $value');
+      print('   fontSize: $fontSize');
+      print('   bold: $bold');
+      print('   hAlign: $hAlign');
+      print('   vAlign: $vAlign');
+      print('   fontColor: $fontColor');
+      print('   bgColor: $bgColor');
     }
     CellStyle style;
     
@@ -488,7 +471,14 @@ class WebExcelService {
     
     // デバッグ: 特定セルのフォント確認
     if (cellAddress == 'A9' || cellAddress == 'R9' || cellAddress == 'A24' || cellAddress == 'A26') {
-      print('✅ セル$cellAddress スタイル適用完了: fontFamily=${style.fontFamily}, fontSize=${style.fontSize}');
+      print('✅ セル$cellAddress CellStyle作成完了');
+      print('   style.fontFamily: ${style.fontFamily}');
+      print('   style.fontSize: ${style.fontSize}');
+      print('   style.bold: ${style.isBold}');
+      print('   style.horizontalAlign: ${style.horizontalAlignment}');
+      print('   style.verticalAlign: ${style.verticalAlignment}');
+      print('   cell.cellStyle.fontFamily: ${cell.cellStyle?.fontFamily}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     }
   }
   
