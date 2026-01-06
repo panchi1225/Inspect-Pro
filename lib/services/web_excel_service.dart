@@ -89,7 +89,10 @@ class WebExcelService {
       // 今回はテンプレートを使わず、詳細な書式設定で生成します
       
       var excel = Excel.createExcel();
-      excel.rename('Sheet1', '月次点検表');
+      // デフォルトシートの名前を変更
+      if (excel.tables.containsKey('Sheet1')) {
+        excel.rename('Sheet1', '月次点検表');
+      }
       Sheet sheet = excel['月次点検表'];
       
       print('✅ 新規Excel作成');
@@ -161,57 +164,57 @@ class WebExcelService {
         '※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること',
         fontSize: 16, bold: true, underline: true, hAlign: HorizontalAlign.Left, vAlign: VerticalAlign.Bottom);
       
-      // AM3～AW3: 所有会社名ラベル
+      // AM3～AW3: 所有会社名ラベル（太字）
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
-      _setCell(sheet, 'AM3', '所有会社名', fontSize: 11, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'AM3', '所有会社名', fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
       
-      // AX3～BD3: 取扱責任者（点検者）ラベル
+      // AX3～BD3: 取扱責任者（点検者）ラベル（太字）
       sheet.merge(CellIndex.indexByString('AX3'), CellIndex.indexByString('BD3'));
-      _setCell(sheet, 'AX3', '取扱責任者（点検者）', fontSize: 11, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'AX3', '取扱責任者（点検者）', fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
       
-      // BE3～BH3: 型式ラベル
+      // BE3～BH3: 型式ラベル（太字）
       sheet.merge(CellIndex.indexByString('BE3'), CellIndex.indexByString('BH3'));
-      _setCell(sheet, 'BE3', '型式', fontSize: 11, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'BE3', '型式', fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
       
-      // BI3～BL3: 機械番号ラベル
+      // BI3～BL3: 機械番号ラベル（太字）
       sheet.merge(CellIndex.indexByString('BI3'), CellIndex.indexByString('BL3'));
-      _setCell(sheet, 'BI3', '機械番号', fontSize: 11, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'BI3', '機械番号', fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
       
-      // BN3～BQ3: 作業所長確認ラベル
+      // BN3～BQ3: 作業所長確認ラベル（太字）
       sheet.merge(CellIndex.indexByString('BN3'), CellIndex.indexByString('BQ3'));
-      _setCell(sheet, 'BN3', '作業所長確認', fontSize: 11, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'BN3', '作業所長確認', fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
       
-      // AM4～AW5: 所有会社名入力（太字）
+      // AM4～AW5: 所有会社名入力（太字解除）
       sheet.merge(CellIndex.indexByString('AM4'), CellIndex.indexByString('AW5'));
-      _setCell(sheet, 'AM4', companyName ?? '', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'AM4', companyName ?? '', fontSize: 14, hAlign: HorizontalAlign.Center);
       
-      // AX4～BD5: 取扱責任者（点検者）入力（太字）
+      // AX4～BD5: 取扱責任者（点検者）入力（太字解除）
       sheet.merge(CellIndex.indexByString('AX4'), CellIndex.indexByString('BD5'));
-      _setCell(sheet, 'AX4', primeContractorInspector ?? '', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'AX4', primeContractorInspector ?? '', fontSize: 14, hAlign: HorizontalAlign.Center);
       
-      // BE4～BH5: 型式入力（太字）
+      // BE4～BH5: 型式入力（太字解除）
       sheet.merge(CellIndex.indexByString('BE4'), CellIndex.indexByString('BH5'));
-      _setCell(sheet, 'BE4', machine.model, fontSize: 14, bold: true, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'BE4', machine.model, fontSize: 14, hAlign: HorizontalAlign.Center);
       
-      // BI4～BL5: 号機入力（太字）
+      // BI4～BL5: 号機入力（太字解除）
       sheet.merge(CellIndex.indexByString('BI4'), CellIndex.indexByString('BL5'));
-      _setCell(sheet, 'BI4', machine.unitNumber, fontSize: 14, bold: true, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'BI4', machine.unitNumber, fontSize: 14, hAlign: HorizontalAlign.Center);
       
-      // BN4～BQ5: 作業所長確認欄
+      // BN4～BQ5: 作業所長確認欄（太字解除）
       sheet.merge(CellIndex.indexByString('BN4'), CellIndex.indexByString('BQ5'));
       
       // ========================================
       // 8. 点検項目ヘッダー（9行目）
       // ========================================
       
-      // A9～Q9: 点検項目
+      // A9～Q9: 点検項目（中央配置）
       sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9'));
-      _setCell(sheet, 'A9', '点検項目', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center,
+      _setCell(sheet, 'A9', '点検項目', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center,
         bgColor: '#D3D3D3');
       
-      // R9～AL9: 点検ポイント
+      // R9～AL9: 点検ポイント（中央配置）
       sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9'));
-      _setCell(sheet, 'R9', '点検ポイント', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center,
+      _setCell(sheet, 'R9', '点検ポイント', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center,
         bgColor: '#D3D3D3');
       
       // ========================================
@@ -244,7 +247,7 @@ class WebExcelService {
         String colName = _getColumnName(38 + day - 1); // AM列から開始
         
         // 日付ヘッダー（9行目） - 太字、中央配置、薄いグレー背景
-        _setCell(sheet, '${colName}9', day.toString(), fontSize: 11, bold: true, hAlign: HorizontalAlign.Center,
+        _setCell(sheet, '${colName}9', day.toString(), fontSize: 11, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center,
           bgColor: '#D3D3D3');
         
         // この日の点検記録を探す
@@ -283,11 +286,11 @@ class WebExcelService {
       // ========================================
       // 10. 24～26行（点検時の注記）
       // ========================================
-      _setCell(sheet, 'A24', '１．点検時', fontSize: 14);
+      _setCell(sheet, 'A24', '１．点検時', fontSize: 14, vAlign: VerticalAlign.Center);
       _setCell(sheet, 'B25', 'チェック記号', fontSize: 14);
       _setCell(sheet, 'J24', '良好…○　要調整、修理…×（使用禁止）　・該当なし…－', fontSize: 14);
       _setCell(sheet, 'J25', '調整または補修したとき…×を○で囲む', fontSize: 14);
-      _setCell(sheet, 'A26', '２．元請点検責任者は毎月上旬・中旬・下旬毎に１回は点検状況を確認すること。', fontSize: 14);
+      _setCell(sheet, 'A26', '２．元請点検責任者は毎月上旬・中旬・下旬毎に１回は点検状況を確認すること。', fontSize: 14, vAlign: VerticalAlign.Center);
       
       // AL24～AL26: 点検者ラベル（縦書き風）
       sheet.merge(CellIndex.indexByString('AL24'), CellIndex.indexByString('AL26'));
@@ -301,9 +304,9 @@ class WebExcelService {
       sheet.merge(CellIndex.indexByString('A27'), CellIndex.indexByString('AJ31'));
       _setCell(sheet, 'A27', '※重機画像添付※', fontSize: 14, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
       
-      // AK27～AL27: 元請点検責任者確認欄
+      // AK27～AL27: 元請点検責任者確認欄（文字サイズ10）
       sheet.merge(CellIndex.indexByString('AK27'), CellIndex.indexByString('AL27'));
-      _setCell(sheet, 'AK27', '元請点検\n責任者\n確認欄', fontSize: 12, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'AK27', '元請点検\n責任者\n確認欄', fontSize: 10, hAlign: HorizontalAlign.Center);
       
       // AM27～AT27, AW27～BD27, BG27～BO27の結合と元請点検責任者の自動記載
       sheet.merge(CellIndex.indexByString('AM27'), CellIndex.indexByString('AT27'));
