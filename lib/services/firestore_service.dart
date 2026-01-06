@@ -425,30 +425,12 @@ class FirestoreService {
     try {
       print('🗑️ 現場「$siteName」と関連データを削除中...');
 
-      // 1. siteNameで現場ドキュメントを取得
-      final siteSnapshot = await _firestore
-          .collection('sites')
-          .where('name', isEqualTo: siteName)
-          .limit(1)
-          .get();
-
-      if (siteSnapshot.docs.isEmpty) {
-        print('⚠️ 現場「$siteName」がFirestoreに見つかりません。点検データのみ削除を試みます。');
-        
-        // 現場が見つからない場合でも、現場名で直接点検データを削除
-        await _deleteInspectionsBySiteName(siteName);
-        return;
-      }
-
-      final siteId = siteSnapshot.docs.first.id;
-      print('📍 現場ID: $siteId');
-
-      // 2. 関連する点検データを削除（最大500件ずつ）
+      // 🔥 重要: 点検データはsiteNameフィールドを使用しているため、現場名で直接削除
       int totalDeleted = 0;
       while (true) {
         final inspections = await _firestore
             .collection('inspections')
-            .where('siteId', isEqualTo: siteId)
+            .where('siteName', isEqualTo: siteName)
             .limit(500)
             .get();
 
@@ -466,47 +448,28 @@ class FirestoreService {
         print('🗑️ 点検データ ${inspections.docs.length}件を削除しました（合計: $totalDeleted件）');
       }
 
-      if (totalDeleted == 0) {
-        print('ℹ️ 削除する点検データはありませんでした');
+      if (totalDeleted > 0) {
+        print('✅ 現場「$siteName」の点検データ $totalDeleted 件を削除しました');
+      } else {
+        print('ℹ️ 現場「$siteName」の点検データはありませんでした');
       }
 
-      // 3. 現場自体を削除
-      await _firestore.collection('sites').doc(siteId).delete();
-      print('✅ 現場「$siteName」を削除しました');
+      // 現場ドキュメント自体も削除
+      final siteSnapshot = await _firestore
+          .collection('sites')
+          .where('name', isEqualTo: siteName)
+          .limit(1)
+          .get();
+
+      if (siteSnapshot.docs.isNotEmpty) {
+        await _firestore.collection('sites').doc(siteSnapshot.docs.first.id).delete();
+        print('✅ 現場「$siteName」をFirestoreから削除しました');
+      } else {
+        print('ℹ️ 現場「$siteName」はFirestoreに存在しませんでした');
+      }
     } catch (e) {
       print('❌ 現場削除エラー: $e');
       throw Exception('現場削除に失敗しました: $e');
-    }
-  }
-
-  /// 現場名で直接点検データを削除（現場IDがない場合のフォールバック）
-  Future<void> _deleteInspectionsBySiteName(String siteName) async {
-    int totalDeleted = 0;
-    while (true) {
-      final inspections = await _firestore
-          .collection('inspections')
-          .where('siteName', isEqualTo: siteName)
-          .limit(500)
-          .get();
-
-      if (inspections.docs.isEmpty) {
-        break;
-      }
-
-      final batch = _firestore.batch();
-      for (final doc in inspections.docs) {
-        batch.delete(doc.reference);
-      }
-      await batch.commit();
-
-      totalDeleted += inspections.docs.length;
-      print('🗑️ 点検データ ${inspections.docs.length}件を削除しました（合計: $totalDeleted件）');
-    }
-
-    if (totalDeleted > 0) {
-      print('✅ 現場名「$siteName」で点検データ $totalDeleted 件を削除しました');
-    } else {
-      print('ℹ️ 削除する点検データはありませんでした');
     }
   }
 
