@@ -288,19 +288,132 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(color: Colors.grey.shade300),
                                 ),
-                                child: Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.photo_camera,
-                                      size: 16,
-                                      color: Colors.grey.shade600,
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.photo_camera,
+                                          size: 16,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '添付写真',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey.shade700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 4),
+                                    const SizedBox(height: 8),
+                                    GestureDetector(
+                                      onTap: () {
+                                        // 画像をフルスクリーンで表示
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => Dialog(
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                AppBar(
+                                                  title: const Text('添付写真'),
+                                                  leading: IconButton(
+                                                    icon: const Icon(Icons.close),
+                                                    onPressed: () => Navigator.pop(context),
+                                                  ),
+                                                ),
+                                                Flexible(
+                                                  child: InteractiveViewer(
+                                                    child: Image.network(
+                                                      result!.photoPath!,
+                                                      fit: BoxFit.contain,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return Container(
+                                                          padding: const EdgeInsets.all(20),
+                                                          child: Column(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            children: [
+                                                              const Icon(Icons.error_outline, size: 48),
+                                                              const SizedBox(height: 8),
+                                                              const Text('画像の読み込みに失敗しました'),
+                                                              const SizedBox(height: 8),
+                                                              Text(
+                                                                result.photoPath!,
+                                                                style: const TextStyle(fontSize: 10),
+                                                                textAlign: TextAlign.center,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          result!.photoPath!,
+                                          height: 200,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              height: 200,
+                                              color: Colors.grey.shade200,
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.broken_image,
+                                                    size: 48,
+                                                    color: Colors.grey.shade400,
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    '画像を読み込めません',
+                                                    style: TextStyle(
+                                                      color: Colors.grey.shade600,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return Container(
+                                              height: 200,
+                                              color: Colors.grey.shade200,
+                                              child: Center(
+                                                child: CircularProgressIndicator(
+                                                  value: loadingProgress.expectedTotalBytes != null
+                                                      ? loadingProgress.cumulativeBytesLoaded /
+                                                          loadingProgress.expectedTotalBytes!
+                                                      : null,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
                                     Text(
-                                      '写真添付済み',
+                                      'タップして拡大',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 10,
                                         color: Colors.grey.shade600,
+                                        fontStyle: FontStyle.italic,
                                       ),
                                     ),
                                   ],
