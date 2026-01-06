@@ -160,9 +160,18 @@ class WebExcelService {
         fontSize: 22, bold: true, italic: true, vAlign: VerticalAlign.Bottom);
       
       // A7: 注意事項（下線追加）
-      _setCell(sheet, 'A7', 
-        '※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること',
-        fontSize: 16, bold: true, underline: true, hAlign: HorizontalAlign.Left, vAlign: VerticalAlign.Bottom);
+      // A7セルに下線を確実に適用
+      var cellA7 = sheet.cell(CellIndex.indexByString('A7'));
+      cellA7.value = TextCellValue('※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること');
+      cellA7.cellStyle = CellStyle(
+        fontFamily: 'HG明朝E',
+        fontSize: 16,
+        bold: true,
+        underline: Underline.Single,
+        horizontalAlign: HorizontalAlign.Left,
+        verticalAlign: VerticalAlign.Bottom,
+      );
+      print('🔍 A7セル下線設定: underline=${cellA7.cellStyle?.underline}');
       
       // AM3～AW3: 所有会社名ラベル（太字）
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
@@ -362,14 +371,14 @@ class WebExcelService {
       
       print('✅ Excel生成完了');
       
-      // ファイル保存
-      var fileBytes = excel.save();
+      // ファイル保存（encode()を使って自動ダウンロードを防ぐ）
+      var fileBytes = excel.encode();
       if (fileBytes == null) {
         print('❌ Excelファイルのバイト変換に失敗');
         return null;
       }
       
-      String fileName = '日々点検表_${machine.type}_${machine.model}_${machine.unitNumber}_${year}年${month}月.xlsx';
+      String fileName = '${month}月度_${machine.type}_${machine.unitNumber}.xlsx';
       
       if (kIsWeb) {
         downloadExcelWeb(fileBytes, fileName);
