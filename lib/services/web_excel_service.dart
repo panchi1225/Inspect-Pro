@@ -159,24 +159,9 @@ class WebExcelService {
       _setCell(sheet, 'A5', '${month}月度　${machine.type}　作業開始前点検表', 
         fontSize: 24, bold: true, italic: true, vAlign: VerticalAlign.Bottom);
       
-      // A7: 注意事項（下線追加）
-      // 完全にシンプルな方法で設定
+      // A7: 注意事項（下線は罫線処理後に設定）
       var a7Cell = sheet.cell(CellIndex.indexByString('A7'));
       a7Cell.value = TextCellValue('※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること');
-      a7Cell.cellStyle = CellStyle(
-        fontFamily: 'HG明朝E',
-        fontSize: 12,
-        bold: false,
-        underline: Underline.Single,
-        horizontalAlign: HorizontalAlign.Left,
-        verticalAlign: VerticalAlign.Bottom,
-      );
-      
-      print('🔍 A7セル直接設定完了');
-      print('   fontSize: 12');
-      print('   underline: Underline.Single');
-      print('   bold: false');
-      print('   実際のスタイル: ${a7Cell.cellStyle?.underline}');
       
       // AM3～AW3: 所有会社名ラベル（太字）
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
@@ -374,57 +359,25 @@ class WebExcelService {
       // ========================================
       _addAllBorders(sheet);
       
-      // 🔍 罫線追加後のA7セルスタイルを確認
-      var a7CellAfterBorders = sheet.cell(CellIndex.indexByString('A7'));
-      print('🔍 罫線処理後のA7セルスタイル確認:');
-      print('   underline: ${a7CellAfterBorders.cellStyle?.underline}');
-      print('   bold: ${a7CellAfterBorders.cellStyle?.isBold}');
-      print('   fontSize: ${a7CellAfterBorders.cellStyle?.fontSize}');
-      
-      // ⚠️ 重要: 罫線処理後にA7セルの下線を再設定
+      // ========================================
+      // 13. A7セルのスタイル設定（罫線処理後に実行）
+      // ========================================
       var a7CellFinal = sheet.cell(CellIndex.indexByString('A7'));
-      var a7CurrentStyle = a7CellFinal.cellStyle;
-      if (a7CurrentStyle != null) {
-        a7CellFinal.cellStyle = CellStyle(
-          fontFamily: 'HG明朝E',
-          fontSize: 12,
-          bold: false,
-          underline: Underline.Single,  // 下線を強制的に再設定
-          horizontalAlign: HorizontalAlign.Left,
-          verticalAlign: VerticalAlign.Bottom,
-          fontColorHex: a7CurrentStyle.fontColor,
-          backgroundColorHex: a7CurrentStyle.backgroundColor,
-          topBorder: a7CurrentStyle.topBorder,
-          bottomBorder: a7CurrentStyle.bottomBorder,
-          leftBorder: a7CurrentStyle.leftBorder,
-          rightBorder: a7CurrentStyle.rightBorder,
-        );
-        print('✅ A7セル下線を罫線処理後に再設定完了');
-        print('   再設定後 underline: ${a7CellFinal.cellStyle?.underline}');
-        print('   再設定後 bold: ${a7CellFinal.cellStyle?.isBold}');
-        print('   再設定後 fontSize: ${a7CellFinal.cellStyle?.fontSize}');
-      } else {
-        // スタイルがnullの場合は新規作成
-        a7CellFinal.cellStyle = CellStyle(
-          fontFamily: 'HG明朝E',
-          fontSize: 12,
-          bold: false,
-          underline: Underline.Single,
-          horizontalAlign: HorizontalAlign.Left,
-          verticalAlign: VerticalAlign.Bottom,
-        );
-        print('✅ A7セル下線を新規作成で設定完了');
-        print('   新規作成 underline: ${a7CellFinal.cellStyle?.underline}');
-      }
+      a7CellFinal.cellStyle = CellStyle(
+        fontFamily: 'HG明朝E',
+        fontSize: 12,
+        bold: false,
+        underline: Underline.Single,
+        horizontalAlign: HorizontalAlign.Left,
+        verticalAlign: VerticalAlign.Bottom,
+      );
+      
+      print('✅ A7セル設定完了（罫線処理後）');
+      print('   underline: ${a7CellFinal.cellStyle?.underline}');
+      print('   bold: ${a7CellFinal.cellStyle?.isBold}');
+      print('   fontSize: ${a7CellFinal.cellStyle?.fontSize}');
       
       print('✅ Excel生成完了');
-      
-      // 🔍 最終確認: encode()直前のA7セルスタイル
-      var a7CellBeforeEncode = sheet.cell(CellIndex.indexByString('A7'));
-      print('🔍 encode()直前のA7セルスタイル:');
-      print('   underline: ${a7CellBeforeEncode.cellStyle?.underline}');
-      print('   bold: ${a7CellBeforeEncode.cellStyle?.isBold}');
-      print('   fontSize: ${a7CellBeforeEncode.cellStyle?.fontSize}');
       
       // ファイル保存（encode()を使って自動ダウンロードを防ぐ）
       var fileBytes = excel.encode();
