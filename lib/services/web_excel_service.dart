@@ -208,10 +208,20 @@ class WebExcelService {
       // ========================================
       
       // A9～Q9: 点検項目（中央配置）
+      // まずセルにスタイルと値を設定
       var cellA9 = sheet.cell(CellIndex.indexByString('A9'));
       cellA9.value = TextCellValue('点検項目');
+      cellA9.cellStyle = CellStyle(
+        fontFamily: 'HG明朝E',
+        fontSize: 14,
+        bold: true,
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+        backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
+      );
+      // 次に結合
       sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9'));
-      // 結合セル専用のスタイル適用
+      // 結合後に再度スタイル適用
       sheet.setMergedCellStyle(
         CellIndex.indexByString('A9'),
         CellStyle(
@@ -225,10 +235,20 @@ class WebExcelService {
       );
       
       // R9～AL9: 点検ポイント（中央配置）
+      // まずセルにスタイルと値を設定
       var cellR9 = sheet.cell(CellIndex.indexByString('R9'));
       cellR9.value = TextCellValue('点検ポイント');
+      cellR9.cellStyle = CellStyle(
+        fontFamily: 'HG明朝E',
+        fontSize: 14,
+        bold: true,
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+        backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
+      );
+      // 次に結合
       sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9'));
-      // 結合セル専用のスタイル適用
+      // 結合後に再度スタイル適用
       sheet.setMergedCellStyle(
         CellIndex.indexByString('R9'),
         CellStyle(
@@ -427,6 +447,9 @@ class WebExcelService {
     cell.value = TextCellValue(value);
     
     // スタイルを段階的に構築（すべてのセルにHG明朝Eフォントを適用）
+    if (cellAddress == 'A9' || cellAddress == 'R9' || cellAddress == 'A24' || cellAddress == 'A26' || cellAddress.endsWith('9') && cellAddress.length >= 3) {
+      print('🔍 セル$cellAddress のフォント設定: HG明朝E');
+    }
     CellStyle style;
     
     if (fontColor != null && bgColor != null) {
@@ -476,6 +499,11 @@ class WebExcelService {
     }
     
     cell.cellStyle = style;
+    
+    // デバッグ: 特定セルのフォント確認
+    if (cellAddress == 'A9' || cellAddress == 'R9' || cellAddress == 'A24' || cellAddress == 'A26') {
+      print('✅ セル$cellAddress スタイル適用完了: fontFamily=${style.fontFamily}, fontSize=${style.fontSize}');
+    }
   }
   
   /// 列名を取得（0-indexed → 列名）
