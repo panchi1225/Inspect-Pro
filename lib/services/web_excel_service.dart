@@ -140,18 +140,14 @@ class WebExcelService {
       // F1: 工事名（現場名）
       _setCell(sheet, 'F1', siteName ?? '', fontSize: 18);
       
-      // A2: 年月
-      _setCell(sheet, 'A2', '$year年$month月', fontSize: 14);
+      // A2: 削除（年月は記載しない）
+      // _setCell(sheet, 'A2', '$year年$month月', fontSize: 14);
       
-      // A3, A4: 関係法令
-      if (machine.typeId == 'excavator') {
-        _setCell(sheet, 'A3', '　【ｸﾚｰﾝ則第７８条】', fontSize: 14);
-        _setCell(sheet, 'A4', '　【安衛則第１７０条】', fontSize: 14);
-      } else if (machine.typeId == 'hand_guide') {
-        _setCell(sheet, 'A3', '　【労働安衛法第２０条】', fontSize: 14);
-      } else {
-        _setCell(sheet, 'A3', '　【安衛則第１７０条】', fontSize: 14);
-      }
+      // A3: 関係法令（すべて【安衛則第１７０条】に統一）
+      _setCell(sheet, 'A3', '　【安衛則第１７０条】', fontSize: 14);
+      
+      // A4: 削除
+      // _setCell(sheet, 'A4', '　【安衛則第１７０条】', fontSize: 14);
       
       _setCell(sheet, 'J3', '・★は法的要求事項', fontSize: 14);
       _setCell(sheet, 'J4', '・その他は点検すべき事項とみなした箇所', fontSize: 14);
@@ -160,10 +156,10 @@ class WebExcelService {
       _setCell(sheet, 'A5', '${month}月度　${machine.type}　作業開始前点検表', 
         fontSize: 22, bold: true, italic: true, vAlign: VerticalAlign.Bottom);
       
-      // A7: 注意事項
+      // A7: 注意事項（下線追加）
       _setCell(sheet, 'A7', 
         '※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること',
-        fontSize: 16, bold: true, underline: true, vAlign: VerticalAlign.Bottom);
+        fontSize: 16, bold: true, underline: true, hAlign: HorizontalAlign.Left, vAlign: VerticalAlign.Bottom);
       
       // AM3～AW3: 所有会社名ラベル
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
@@ -272,12 +268,12 @@ class WebExcelService {
             if (record.results.containsKey(item.code)) {
               bool isGood = record.results[item.code]!.isGood;
               value = isGood ? '○' : '×';
-              // 文字は黒、背景色を緑（○）またはピンク（×）に
-              bgColorHex = isGood ? '#C6E0B4' : '#FFE6F0';
+              // 文字は黒、背景色を明るい黄緑（○）またはピンク（×）に
+              bgColorHex = isGood ? '#D4ED91' : '#FFE6F0';
             }
             
             _setCell(sheet, '$colName$resultRow', value, 
-              fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, bgColor: bgColorHex);
+              fontSize: 10, bold: true, hAlign: HorizontalAlign.Center, bgColor: bgColorHex);
             
             resultRow++;
           }
@@ -309,10 +305,15 @@ class WebExcelService {
       sheet.merge(CellIndex.indexByString('AK27'), CellIndex.indexByString('AL27'));
       _setCell(sheet, 'AK27', '元請点検\n責任者\n確認欄', fontSize: 12, hAlign: HorizontalAlign.Center);
       
-      // AM27～AT27, AW27～BD27, BG27～BO27の結合
+      // AM27～AT27, AW27～BD27, BG27～BO27の結合と元請点検責任者の自動記載
       sheet.merge(CellIndex.indexByString('AM27'), CellIndex.indexByString('AT27'));
+      _setCell(sheet, 'AM27', primeContractorInspector ?? '', fontSize: 14, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
+      
       sheet.merge(CellIndex.indexByString('AW27'), CellIndex.indexByString('BD27'));
+      _setCell(sheet, 'AW27', primeContractorInspector ?? '', fontSize: 14, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
+      
       sheet.merge(CellIndex.indexByString('BG27'), CellIndex.indexByString('BO27'));
+      _setCell(sheet, 'BG27', primeContractorInspector ?? '', fontSize: 14, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
       
       // 28行: 補修情報ヘッダー（太字）
       sheet.merge(CellIndex.indexByString('AK28'), CellIndex.indexByString('BE28'));
@@ -398,11 +399,12 @@ class WebExcelService {
     var cell = sheet.cell(CellIndex.indexByString(cellAddress));
     cell.value = TextCellValue(value);
     
-    // スタイルを段階的に構築
+    // スタイルを段階的に構築（すべてのセルにHG明朝Eフォントを適用）
     CellStyle style;
     
     if (fontColor != null && bgColor != null) {
       style = CellStyle(
+        fontFamily: getFontFamily(FontFamily.Arial), // HG明朝E
         fontSize: fontSize,
         bold: bold,
         italic: italic,
@@ -414,6 +416,7 @@ class WebExcelService {
       );
     } else if (fontColor != null) {
       style = CellStyle(
+        fontFamily: getFontFamily(FontFamily.Arial), // HG明朝E
         fontSize: fontSize,
         bold: bold,
         italic: italic,
@@ -424,6 +427,7 @@ class WebExcelService {
       );
     } else if (bgColor != null) {
       style = CellStyle(
+        fontFamily: getFontFamily(FontFamily.Arial), // HG明朝E
         fontSize: fontSize,
         bold: bold,
         italic: italic,
@@ -434,6 +438,7 @@ class WebExcelService {
       );
     } else {
       style = CellStyle(
+        fontFamily: getFontFamily(FontFamily.Arial), // HG明朝E
         fontSize: fontSize,
         bold: bold,
         italic: italic,
