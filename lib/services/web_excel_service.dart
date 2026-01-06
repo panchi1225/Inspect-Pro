@@ -534,11 +534,19 @@ class WebExcelService {
     } else {
       // 既存のスタイルを維持しつつ罫線を追加
       cell.cellStyle = CellStyle(
+        fontFamily: currentStyle.fontFamily,  // ← フォントファミリーを維持
         fontSize: currentStyle.fontSize,
-        topBorder: top ? Border(borderStyle: BorderStyle.Thin) : null,
-        bottomBorder: bottom ? Border(borderStyle: BorderStyle.Thin) : null,
-        leftBorder: left ? Border(borderStyle: BorderStyle.Thin) : null,
-        rightBorder: right ? Border(borderStyle: BorderStyle.Thin) : null,
+        bold: currentStyle.isBold,
+        italic: currentStyle.isItalic,
+        underline: currentStyle.underline,
+        horizontalAlign: currentStyle.horizontalAlignment,
+        verticalAlign: currentStyle.verticalAlignment,
+        fontColorHex: currentStyle.fontColor,
+        backgroundColorHex: currentStyle.backgroundColor,
+        topBorder: top ? Border(borderStyle: BorderStyle.Thin) : currentStyle.topBorder,
+        bottomBorder: bottom ? Border(borderStyle: BorderStyle.Thin) : currentStyle.bottomBorder,
+        leftBorder: left ? Border(borderStyle: BorderStyle.Thin) : currentStyle.leftBorder,
+        rightBorder: right ? Border(borderStyle: BorderStyle.Thin) : currentStyle.rightBorder,
       );
     }
   }
