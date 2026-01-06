@@ -386,7 +386,7 @@ class WebExcelService {
       var a7CurrentStyle = a7CellFinal.cellStyle;
       if (a7CurrentStyle != null) {
         a7CellFinal.cellStyle = CellStyle(
-          fontFamily: a7CurrentStyle.fontFamily,
+          fontFamily: 'HG明朝E',
           fontSize: 12,
           bold: false,
           underline: Underline.Single,  // 下線を強制的に再設定
@@ -400,9 +400,31 @@ class WebExcelService {
           rightBorder: a7CurrentStyle.rightBorder,
         );
         print('✅ A7セル下線を罫線処理後に再設定完了');
+        print('   再設定後 underline: ${a7CellFinal.cellStyle?.underline}');
+        print('   再設定後 bold: ${a7CellFinal.cellStyle?.isBold}');
+        print('   再設定後 fontSize: ${a7CellFinal.cellStyle?.fontSize}');
+      } else {
+        // スタイルがnullの場合は新規作成
+        a7CellFinal.cellStyle = CellStyle(
+          fontFamily: 'HG明朝E',
+          fontSize: 12,
+          bold: false,
+          underline: Underline.Single,
+          horizontalAlign: HorizontalAlign.Left,
+          verticalAlign: VerticalAlign.Bottom,
+        );
+        print('✅ A7セル下線を新規作成で設定完了');
+        print('   新規作成 underline: ${a7CellFinal.cellStyle?.underline}');
       }
       
       print('✅ Excel生成完了');
+      
+      // 🔍 最終確認: encode()直前のA7セルスタイル
+      var a7CellBeforeEncode = sheet.cell(CellIndex.indexByString('A7'));
+      print('🔍 encode()直前のA7セルスタイル:');
+      print('   underline: ${a7CellBeforeEncode.cellStyle?.underline}');
+      print('   bold: ${a7CellBeforeEncode.cellStyle?.isBold}');
+      print('   fontSize: ${a7CellBeforeEncode.cellStyle?.fontSize}');
       
       // ファイル保存（encode()を使って自動ダウンロードを防ぐ）
       var fileBytes = excel.encode();
