@@ -207,15 +207,39 @@ class WebExcelService {
       // 8. 点検項目ヘッダー（9行目）
       // ========================================
       
-      // A9～Q9: 点検項目（中央配置） - スタイル適用後に結合
-      _setCell(sheet, 'A9', '点検項目', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center,
-        bgColor: '#D3D3D3');
+      // A9～Q9: 点検項目（中央配置）
+      var cellA9 = sheet.cell(CellIndex.indexByString('A9'));
+      cellA9.value = TextCellValue('点検項目');
       sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9'));
+      // 結合セル専用のスタイル適用
+      sheet.setMergedCellStyle(
+        CellIndex.indexByString('A9'),
+        CellStyle(
+          fontFamily: 'HG明朝E',
+          fontSize: 14,
+          bold: true,
+          horizontalAlign: HorizontalAlign.Center,
+          verticalAlign: VerticalAlign.Center,
+          backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
+        ),
+      );
       
-      // R9～AL9: 点検ポイント（中央配置） - スタイル適用後に結合
-      _setCell(sheet, 'R9', '点検ポイント', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center,
-        bgColor: '#D3D3D3');
+      // R9～AL9: 点検ポイント（中央配置）
+      var cellR9 = sheet.cell(CellIndex.indexByString('R9'));
+      cellR9.value = TextCellValue('点検ポイント');
       sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9'));
+      // 結合セル専用のスタイル適用
+      sheet.setMergedCellStyle(
+        CellIndex.indexByString('R9'),
+        CellStyle(
+          fontFamily: 'HG明朝E',
+          fontSize: 14,
+          bold: true,
+          horizontalAlign: HorizontalAlign.Center,
+          verticalAlign: VerticalAlign.Center,
+          backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
+        ),
+      );
       
       // ========================================
       // 9. 点検項目の入力（A10～A23: ★、B10～B23: 項目名、R10～R23: 点検ポイント）
