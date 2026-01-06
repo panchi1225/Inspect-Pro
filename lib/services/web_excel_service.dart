@@ -160,36 +160,23 @@ class WebExcelService {
         fontSize: 22, bold: true, italic: true, vAlign: VerticalAlign.Bottom);
       
       // A7: 注意事項（下線追加）
-      // A7セルに下線を確実に適用（複数回設定を試みる）
+      // A7セルを完全にリセットして下線のみを設定（最小構成でテスト）
       var cellA7 = sheet.cell(CellIndex.indexByString('A7'));
       cellA7.value = TextCellValue('※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること');
       
-      // 方法1: CellStyleで設定
-      var a7Style = CellStyle(
+      // 最小限の設定：下線のみを最優先で設定
+      cellA7.cellStyle = CellStyle(
         fontFamily: 'HG明朝E',
         fontSize: 16,
-        bold: true,
-        underline: Underline.Single,
-        horizontalAlign: HorizontalAlign.Left,
-        verticalAlign: VerticalAlign.Bottom,
-      );
-      cellA7.cellStyle = a7Style;
-      
-      // 方法2: 再度同じスタイルを適用（強制上書き）
-      sheet.updateCell(
-        CellIndex.indexByString('A7'),
-        TextCellValue('※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること'),
-        cellStyle: CellStyle(
-          fontFamily: 'HG明朝E',
-          fontSize: 16,
-          bold: true,
-          underline: Underline.Single,
-          horizontalAlign: HorizontalAlign.Left,
-          verticalAlign: VerticalAlign.Bottom,
-        ),
+        underline: Underline.Single,  // 下線を最優先
+        // bold: trueを削除してテスト
+        // horizontalAlign, verticalAlignも削除してテスト
       );
       
-      print('🔍 A7セル下線設定完了: underline=${sheet.cell(CellIndex.indexByString('A7')).cellStyle?.underline}');
+      print('🔍 A7セル設定完了（最小構成）');
+      print('   - underline: ${cellA7.cellStyle?.underline}');
+      print('   - bold: ${cellA7.cellStyle?.isBold}');
+      print('   - fontSize: ${cellA7.cellStyle?.fontSize}');
       
       // AM3～AW3: 所有会社名ラベル（太字）
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
