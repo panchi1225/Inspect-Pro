@@ -157,20 +157,26 @@ class WebExcelService {
       
       // A5: 月度 機械名 作業開始前点検表
       _setCell(sheet, 'A5', '${month}月度　${machine.type}　作業開始前点検表', 
-        fontSize: 22, bold: true, italic: true, vAlign: VerticalAlign.Bottom);
+        fontSize: 24, bold: true, italic: true, vAlign: VerticalAlign.Bottom);
       
       // A7: 注意事項（下線追加）
-      // _setCell関数を使用してA7セルを設定（太字なし、下線あり）
-      _setCell(
-        sheet, 
-        'A7', 
-        '※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること',
-        fontSize: 16,
-        bold: false,  // 太字を解除
-        underline: true,  // 下線を追加
-        hAlign: HorizontalAlign.Left,
-        vAlign: VerticalAlign.Bottom,  // 下寄せを維持
+      // 完全にシンプルな方法で設定
+      var a7Cell = sheet.cell(CellIndex.indexByString('A7'));
+      a7Cell.value = TextCellValue('※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること');
+      a7Cell.cellStyle = CellStyle(
+        fontFamily: 'HG明朝E',
+        fontSize: 12,
+        bold: false,
+        underline: Underline.Single,
+        horizontalAlign: HorizontalAlign.Left,
+        verticalAlign: VerticalAlign.Bottom,
       );
+      
+      print('🔍 A7セル直接設定完了');
+      print('   fontSize: 12');
+      print('   underline: Underline.Single');
+      print('   bold: false');
+      print('   実際のスタイル: ${a7Cell.cellStyle?.underline}');
       
       // AM3～AW3: 所有会社名ラベル（太字）
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
@@ -368,6 +374,13 @@ class WebExcelService {
       // ========================================
       _addAllBorders(sheet);
       
+      // 🔍 罫線追加後のA7セルスタイルを確認
+      var a7CellAfterBorders = sheet.cell(CellIndex.indexByString('A7'));
+      print('🔍 罫線処理後のA7セルスタイル確認:');
+      print('   underline: ${a7CellAfterBorders.cellStyle?.underline}');
+      print('   bold: ${a7CellAfterBorders.cellStyle?.isBold}');
+      print('   fontSize: ${a7CellAfterBorders.cellStyle?.fontSize}');
+      
       print('✅ Excel生成完了');
       
       // ファイル保存（encode()を使って自動ダウンロードを防ぐ）
@@ -475,11 +488,12 @@ class WebExcelService {
     cell.cellStyle = style;
     
     // デバッグ: 特定セルのフォント確認
-    if (cellAddress == 'A9' || cellAddress == 'R9' || cellAddress == 'A24' || cellAddress == 'A26') {
+    if (cellAddress == 'A9' || cellAddress == 'R9' || cellAddress == 'A24' || cellAddress == 'A26' || cellAddress == 'A7') {
       print('✅ セル$cellAddress CellStyle作成完了');
       print('   style.fontFamily: ${style.fontFamily}');
       print('   style.fontSize: ${style.fontSize}');
       print('   style.bold: ${style.isBold}');
+      print('   style.underline: ${style.underline}');
       print('   style.horizontalAlign: ${style.horizontalAlignment}');
       print('   style.verticalAlign: ${style.verticalAlignment}');
       print('   cell.cellStyle.fontFamily: ${cell.cellStyle?.fontFamily}');
