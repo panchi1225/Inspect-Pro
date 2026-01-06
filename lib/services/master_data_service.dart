@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../data/master_data.dart';
+import 'firestore_service.dart';
 
 /// マスタデータサービス
 /// 現場名、点検者名、所有会社名の管理とクラウド同期
@@ -75,7 +76,18 @@ class MasterDataService {
 
   /// 現場名を削除（関連する点検記録も削除）
   Future<void> deleteSite(String site) async {
-    print('📤 現場名削除: $site');
+    print('📤 現場名削除開始: $site');
+    
+    // 🔥 重要: Firestoreの現場と関連する点検データを全て削除
+    try {
+      await FirestoreService().deleteSiteWithInspections(site);
+      print('✅ Firestore: 現場と関連点検データ削除完了: $site');
+    } catch (e) {
+      print('⚠️ Firestore削除エラー: $e');
+      // Firestoreエラーでも処理を続行（HTTP削除を試行）
+    }
+    
+    // HTTP API経由でも削除
     final response = await http.delete(
       Uri.parse('$_baseUrl/sites'),
       headers: {'Content-Type': 'application/json'},
@@ -85,7 +97,7 @@ class MasterDataService {
     if (response.statusCode != 200) {
       throw Exception('現場名の削除に失敗しました');
     }
-    print('✅ 現場名削除完了: $site');
+    print('✅ HTTP API: 現場名削除完了: $site');
   }
 
   /// 点検者名を追加

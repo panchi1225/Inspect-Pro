@@ -467,4 +467,39 @@ class FirestoreService {
       throw Exception('現場削除に失敗しました: $e');
     }
   }
+
+  /// 機械と関連する点検データを削除
+  Future<void> deleteMachineWithInspections(String machineId) async {
+    try {
+      print('🗑️ 機械ID「$machineId」と関連データを削除中...');
+
+      // 1. 関連する点検データを削除（最大500件ずつ）
+      while (true) {
+        final inspections = await _firestore
+            .collection('inspections')
+            .where('machineId', isEqualTo: machineId)
+            .limit(500)
+            .get();
+
+        if (inspections.docs.isEmpty) {
+          break;
+        }
+
+        final batch = _firestore.batch();
+        for (final doc in inspections.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+
+        print('🗑️ 点検データ ${inspections.docs.length}件を削除しました');
+      }
+
+      // 2. 機械自体を削除
+      await _firestore.collection('machines').doc(machineId).delete();
+      print('✅ 機械ID「$machineId」を削除しました');
+    } catch (e) {
+      print('❌ 機械削除エラー: $e');
+      throw Exception('機械削除に失敗しました: $e');
+    }
+  }
 }
