@@ -190,7 +190,7 @@ class WebExcelService {
       
       // AX4～BD5: 取扱責任者（点検者）入力（太字解除）
       sheet.merge(CellIndex.indexByString('AX4'), CellIndex.indexByString('BD5'));
-      _setCell(sheet, 'AX4', primeContractorInspector ?? '', fontSize: 14, hAlign: HorizontalAlign.Center);
+      _setCell(sheet, 'AX4', responsiblePerson ?? '', fontSize: 14, hAlign: HorizontalAlign.Center);
       
       // BE4～BH5: 型式入力（太字解除）
       sheet.merge(CellIndex.indexByString('BE4'), CellIndex.indexByString('BH5'));
@@ -208,58 +208,44 @@ class WebExcelService {
       // ========================================
       
       // A9～Q9: 点検項目（中央配置）
-      // まずセルにスタイルと値を設定
-      var cellA9 = sheet.cell(CellIndex.indexByString('A9'));
-      cellA9.value = TextCellValue('点検項目');
-      cellA9.cellStyle = CellStyle(
-        fontFamily: 'HG明朝E',
-        fontSize: 14,
-        bold: true,
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
-        backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
-      );
-      // 次に結合
-      sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9'));
-      // 結合後に再度スタイル適用
-      sheet.setMergedCellStyle(
-        CellIndex.indexByString('A9'),
-        CellStyle(
+      // 結合範囲の全セルにスタイルを適用（A9～Q9 = 列0～16）
+      for (int col = 0; col <= 16; col++) {
+        String colName = _getColumnName(col);
+        var cell = sheet.cell(CellIndex.indexByString('${colName}9'));
+        if (col == 0) {
+          cell.value = TextCellValue('点検項目');
+        }
+        cell.cellStyle = CellStyle(
           fontFamily: 'HG明朝E',
           fontSize: 14,
           bold: true,
           horizontalAlign: HorizontalAlign.Center,
           verticalAlign: VerticalAlign.Center,
           backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
-        ),
-      );
+        );
+      }
+      // 結合
+      sheet.merge(CellIndex.indexByString('A9'), CellIndex.indexByString('Q9'));
       
       // R9～AL9: 点検ポイント（中央配置）
-      // まずセルにスタイルと値を設定
-      var cellR9 = sheet.cell(CellIndex.indexByString('R9'));
-      cellR9.value = TextCellValue('点検ポイント');
-      cellR9.cellStyle = CellStyle(
-        fontFamily: 'HG明朝E',
-        fontSize: 14,
-        bold: true,
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
-        backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
-      );
-      // 次に結合
-      sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9'));
-      // 結合後に再度スタイル適用
-      sheet.setMergedCellStyle(
-        CellIndex.indexByString('R9'),
-        CellStyle(
+      // 結合範囲の全セルにスタイルを適用（R9～AL9 = 列17～37）
+      for (int col = 17; col <= 37; col++) {
+        String colName = _getColumnName(col);
+        var cell = sheet.cell(CellIndex.indexByString('${colName}9'));
+        if (col == 17) {
+          cell.value = TextCellValue('点検ポイント');
+        }
+        cell.cellStyle = CellStyle(
           fontFamily: 'HG明朝E',
           fontSize: 14,
           bold: true,
           horizontalAlign: HorizontalAlign.Center,
           verticalAlign: VerticalAlign.Center,
           backgroundColorHex: ExcelColor.fromHexString('#D3D3D3'),
-        ),
-      );
+        );
+      }
+      // 結合
+      sheet.merge(CellIndex.indexByString('R9'), CellIndex.indexByString('AL9'));
       
       // ========================================
       // 9. 点検項目の入力（A10～A23: ★、B10～B23: 項目名、R10～R23: 点検ポイント）
@@ -270,7 +256,7 @@ class WebExcelService {
         
         // A列: ★（法的要求事項の場合）
         if (item.isRequired) {
-          _setCell(sheet, 'A$row', '★', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center);
+          _setCell(sheet, 'A$row', '★', fontSize: 14, bold: true, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
         }
         
         // B列: 項目名
@@ -330,11 +316,11 @@ class WebExcelService {
       // ========================================
       // 10. 24～26行（点検時の注記）
       // ========================================
-      _setCell(sheet, 'A24', '１．点検時', fontSize: 14, vAlign: VerticalAlign.Center);
+      _setCell(sheet, 'A24', '１．点検時', fontSize: 14, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
       _setCell(sheet, 'B25', 'チェック記号', fontSize: 14);
       _setCell(sheet, 'J24', '良好…○　要調整、修理…×（使用禁止）　・該当なし…－', fontSize: 14);
       _setCell(sheet, 'J25', '調整または補修したとき…×を○で囲む', fontSize: 14);
-      _setCell(sheet, 'A26', '２．元請点検責任者は毎月上旬・中旬・下旬毎に１回は点検状況を確認すること。', fontSize: 14, vAlign: VerticalAlign.Center);
+      _setCell(sheet, 'A26', '２．元請点検責任者は毎月上旬・中旬・下旬毎に１回は点検状況を確認すること。', fontSize: 14, hAlign: HorizontalAlign.Center, vAlign: VerticalAlign.Center);
       
       // AL24～AL26: 点検者ラベル（縦書き風）
       sheet.merge(CellIndex.indexByString('AL24'), CellIndex.indexByString('AL26'));
