@@ -407,7 +407,7 @@ class WebExcelService {
     
     if (fontColor != null && bgColor != null) {
       style = CellStyle(
-        fontFamily: getFontFamily(FontFamily.Arial), // HG明朝E
+        fontFamily: 'HG明朝E',
         fontSize: fontSize,
         bold: bold,
         italic: italic,
@@ -419,7 +419,7 @@ class WebExcelService {
       );
     } else if (fontColor != null) {
       style = CellStyle(
-        fontFamily: getFontFamily(FontFamily.Arial), // HG明朝E
+        fontFamily: 'HG明朝E',
         fontSize: fontSize,
         bold: bold,
         italic: italic,
@@ -430,7 +430,7 @@ class WebExcelService {
       );
     } else if (bgColor != null) {
       style = CellStyle(
-        fontFamily: getFontFamily(FontFamily.Arial), // HG明朝E
+        fontFamily: 'HG明朝E',
         fontSize: fontSize,
         bold: bold,
         italic: italic,
@@ -441,7 +441,7 @@ class WebExcelService {
       );
     } else {
       style = CellStyle(
-        fontFamily: getFontFamily(FontFamily.Arial), // HG明朝E
+        fontFamily: 'HG明朝E',
         fontSize: fontSize,
         bold: bold,
         italic: italic,
