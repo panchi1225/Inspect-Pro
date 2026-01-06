@@ -160,23 +160,17 @@ class WebExcelService {
         fontSize: 22, bold: true, italic: true, vAlign: VerticalAlign.Bottom);
       
       // A7: 注意事項（下線追加）
-      // A7セルを完全にリセットして下線のみを設定（最小構成でテスト）
-      var cellA7 = sheet.cell(CellIndex.indexByString('A7'));
-      cellA7.value = TextCellValue('※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること');
-      
-      // 最小限の設定：下線のみを最優先で設定
-      cellA7.cellStyle = CellStyle(
-        fontFamily: 'HG明朝E',
+      // _setCell関数を使用してA7セルを設定（太字なし、下線あり）
+      _setCell(
+        sheet, 
+        'A7', 
+        '※点検時、作業時問わず異常を認めたときは、元請点検責任者に報告及び速やかに補修その他必要な措置を取ること',
         fontSize: 16,
-        underline: Underline.Single,  // 下線を最優先
-        // bold: trueを削除してテスト
-        // horizontalAlign, verticalAlignも削除してテスト
+        bold: false,  // 太字を解除
+        underline: true,  // 下線を追加
+        hAlign: HorizontalAlign.Left,
+        vAlign: VerticalAlign.Bottom,  // 下寄せを維持
       );
-      
-      print('🔍 A7セル設定完了（最小構成）');
-      print('   - underline: ${cellA7.cellStyle?.underline}');
-      print('   - bold: ${cellA7.cellStyle?.isBold}');
-      print('   - fontSize: ${cellA7.cellStyle?.fontSize}');
       
       // AM3～AW3: 所有会社名ラベル（太字）
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
@@ -611,6 +605,97 @@ class WebExcelService {
       for (int col = 36; col <= 68; col++) {
         _addBorder(sheet, col, row, bottom: true);
       }
+    }
+    
+    // ========================================
+    // 追加の罫線（右側）
+    // ========================================
+    
+    // Z3、Z4セルの右側に罫線 (Z=col 25, rows 2-3)
+    _addBorder(sheet, 25, 2, right: true);
+    _addBorder(sheet, 25, 3, right: true);
+    
+    // AW3～AW5までのセルの右側に罫線 (AW=col 48, rows 2-4)
+    for (int row = 2; row <= 4; row++) {
+      _addBorder(sheet, 48, row, right: true);
+    }
+    
+    // AM3～BL3までのセルの下部に罫線 (col 38-63, row 2)
+    for (int col = 38; col <= 63; col++) {
+      _addBorder(sheet, col, 2, bottom: true);
+    }
+    
+    // BN3～BQ3までのセルの下部に罫線 (col 65-68, row 2)
+    for (int col = 65; col <= 68; col++) {
+      _addBorder(sheet, col, 2, bottom: true);
+    }
+    
+    // BD3～BD5までのセルの右側に罫線 (BD=col 55, rows 2-4)
+    for (int row = 2; row <= 4; row++) {
+      _addBorder(sheet, 55, row, right: true);
+    }
+    
+    // BH3～BH5までのセルの右側に罫線 (BH=col 59, rows 2-4)
+    for (int row = 2; row <= 4; row++) {
+      _addBorder(sheet, 59, row, right: true);
+    }
+    
+    // A10～A23までのセルの右側に罫線 (col 0, rows 9-22)
+    for (int row = 9; row <= 22; row++) {
+      _addBorder(sheet, 0, row, right: true);
+    }
+    
+    // H24、H25のセルの右側に罫線 (H=col 7, rows 23-24)
+    _addBorder(sheet, 7, 23, right: true);
+    _addBorder(sheet, 7, 24, right: true);
+    
+    // AK24～AK26までのセルの右側に罫線 (AK=col 36, rows 23-25)
+    for (int row = 23; row <= 25; row++) {
+      _addBorder(sheet, 36, row, right: true);
+    }
+    
+    // Q9～Q23までのセルの右側に罫線 (Q=col 16, rows 8-22)
+    for (int row = 8; row <= 22; row++) {
+      _addBorder(sheet, 16, row, right: true);
+    }
+    
+    // 行9～26の列AL～BPまでのセルの右側に罫線 (rows 8-25, col 37-67)
+    for (int row = 8; row <= 25; row++) {
+      for (int col = 37; col <= 67; col++) {
+        _addBorder(sheet, col, row, right: true);
+      }
+    }
+    
+    // AJ27～AJ31までのセルの右側に罫線 (AJ=col 35, rows 26-30)
+    for (int row = 26; row <= 30; row++) {
+      _addBorder(sheet, 35, row, right: true);
+    }
+    
+    // AL27のセルの右側に罫線 (AL=col 37, row 26)
+    _addBorder(sheet, 37, 26, right: true);
+    
+    // AV27、BF27のセルの右側に罫線 (AV=col 47, BF=col 57, row 26)
+    _addBorder(sheet, 47, 26, right: true);
+    _addBorder(sheet, 57, 26, right: true);
+    
+    // BE28～BE31までのセルの右側に罫線 (BE=col 56, rows 27-30)
+    for (int row = 27; row <= 30; row++) {
+      _addBorder(sheet, 56, row, right: true);
+    }
+    
+    // BH28～BH31までのセルの右側に罫線 (BH=col 59, rows 27-30)
+    for (int row = 27; row <= 30; row++) {
+      _addBorder(sheet, 59, row, right: true);
+    }
+    
+    // BK28～BK31までのセルの右側に罫線 (BK=col 62, rows 27-30)
+    for (int row = 27; row <= 30; row++) {
+      _addBorder(sheet, 62, row, right: true);
+    }
+    
+    // BN28～BN31までのセルの右側に罫線 (BN=col 65, rows 27-30)
+    for (int row = 27; row <= 30; row++) {
+      _addBorder(sheet, 65, row, right: true);
     }
   }
   
