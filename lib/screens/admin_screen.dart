@@ -435,6 +435,14 @@ class _AdminScreenState extends State<AdminScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
+                                        record.machineModel,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
                                         record.machineUnitNumber,
                                         style: const TextStyle(
                                           fontSize: 14,

@@ -91,7 +91,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${widget.record.machineType} ${widget.record.machineUnitNumber}',
+                  '${widget.record.machineType} ${widget.record.machineModel} ${widget.record.machineUnitNumber}',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
