@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 import '../models/inspection_record.dart';
 import '../models/inspection_item.dart';
 import '../services/firestore_service.dart';
@@ -47,6 +49,52 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  /// Base64文字列から画像を表示
+  Widget _buildImageFromBase64(String base64String, {BoxFit? fit}) {
+    try {
+      final bytes = base64Decode(base64String);
+      return Image.memory(
+        Uint8List.fromList(bytes),
+        fit: fit ?? BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[200],
+            child: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  SizedBox(height: 8),
+                  Text('画像の読み込みに失敗しました'),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      return Container(
+        color: Colors.grey[200],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 8),
+              const Text('画像形式エラー'),
+              const SizedBox(height: 4),
+              Text(
+                e.toString(),
+                style: const TextStyle(fontSize: 10),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
     }
   }
 
@@ -328,23 +376,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                                 ),
                                                 Flexible(
                                                   child: InteractiveViewer(
-                                                    child: Image.network(
-                                                      result!.photoPath!,
-                                                      fit: BoxFit.contain,
-                                                      errorBuilder: (context, error, stackTrace) {
-                                                        return Container(
-                                                          padding: const EdgeInsets.all(20),
-                                                          child: Column(
-                                                            mainAxisAlignment: MainAxisAlignment.center,
-                                                            children: [
-                                                              const Icon(Icons.error_outline, size: 48),
-                                                              const SizedBox(height: 8),
-                                                              const Text('画像の読み込みに失敗しました'),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
+                                                    child: _buildImageFromBase64(result!.photoPath!),
                                                   ),
                                                 ),
                                               ],
@@ -354,27 +386,13 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                       },
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(
-                                          result!.photoPath!,
+                                        child: SizedBox(
                                           height: 200,
                                           width: double.infinity,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return Container(
-                                              height: 200,
-                                              color: Colors.grey[200],
-                                              child: const Center(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(Icons.error_outline, size: 32),
-                                                    SizedBox(height: 8),
-                                                    Text('画像の読み込みに失敗しました'),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                          child: _buildImageFromBase64(
+                                            result!.photoPath!,
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
                                       ),
                                     ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import '../models/machine.dart';
 import '../models/inspection_item.dart';
 import '../models/inspection_record.dart';
@@ -25,7 +26,6 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final Map<String, InspectionResult> _results = {};
   final Map<String, TextEditingController> _memoControllers = {};
-  final Map<String, List<int>> _tempPhotos = {}; // 一時的な画像データ保存用
   final ImagePicker _picker = ImagePicker();
   DateTime _selectedDate = DateTime.now(); // 選択された点検日
   
@@ -112,8 +112,9 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
     );
 
     if (photo != null) {
-      // ローカルに一時保存（アップロードは保存時に実行）
+      // 画像をBase64形式に変換
       final bytes = await photo.readAsBytes();
+      final base64Image = base64Encode(bytes);
       
       setState(() {
         final result = _results[itemCode];
@@ -121,13 +122,13 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
           _results[itemCode] = InspectionResult(
             itemCode: result.itemCode,
             isGood: result.isGood,
-            photoPath: 'local_temp', // 一時マーカー
+            photoPath: base64Image, // Base64形式で保存
             memo: result.memo,
           );
-          // 画像データを一時保存
-          _tempPhotos[itemCode] = bytes;
         }
       });
+      
+      print('✅ 画像をBase64形式で保存しました（サイズ: ${base64Image.length} 文字）');
     }
   }
 
@@ -228,47 +229,8 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
       return;
     }
 
-    // ローディング表示
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
     try {
-      // 仮のInspection IDを生成（画像アップロード用）
-      final tempInspectionId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-
-      // 画像をFirebase Storageにアップロード
-      final updatedResults = <String, InspectionResult>{};
-      for (final entry in _results.entries) {
-        final itemCode = entry.key;
-        final result = entry.value;
-
-        if (result.photoPath == 'local_temp' && _tempPhotos.containsKey(itemCode)) {
-          // 画像をアップロード
-          print('📤 画像アップロード中: $itemCode');
-          final photoUrl = await _firestoreService.uploadInspectionPhoto(
-            inspectionId: tempInspectionId,
-            itemCode: itemCode,
-            imageBytes: _tempPhotos[itemCode]!,
-          );
-
-          updatedResults[itemCode] = InspectionResult(
-            itemCode: result.itemCode,
-            isGood: result.isGood,
-            photoPath: photoUrl, // Firebase StorageのURL
-            memo: result.memo,
-          );
-        } else {
-          updatedResults[itemCode] = result;
-        }
-      }
-
-      // Firestoreに保存
+      // Base64形式でそのまま保存
       await _firestoreService.saveInspection(
         siteName: widget.siteName,
         inspectorName: widget.inspectorName,
@@ -278,20 +240,13 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
         machineModel: widget.machine.model,
         machineUnitNumber: widget.machine.unitNumber,
         date: _selectedDate,
-        results: updatedResults,
+        results: _results,
       );
 
       print('✅ 点検記録を保存しました');
-
-      // ローディングを閉じる
-      if (!mounted) return;
-      Navigator.pop(context);
     } catch (e) {
       print('❌ 保存エラー: $e');
-      // ローディングを閉じる
       if (!mounted) return;
-      Navigator.pop(context);
-      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('保存に失敗しました: $e')),
       );

@@ -1,6 +1,4 @@
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import '../models/machine.dart';
 import '../models/inspection_item.dart';
 import '../models/inspection_record.dart';
@@ -12,7 +10,6 @@ class FirestoreService {
   FirestoreService._internal();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // ============================================================
   // マスタデータ管理
@@ -511,66 +508,4 @@ class FirestoreService {
     }
   }
 
-  // ============================================================
-  // Firebase Storage - 画像アップロード
-  // ============================================================
-
-  /// 画像をFirebase Storageにアップロードし、ダウンロードURLを返す
-  /// 
-  /// パス: inspection_photos/{inspectionId}/{itemCode}_{timestamp}.jpg
-  Future<String> uploadInspectionPhoto({
-    required String inspectionId,
-    required String itemCode,
-    required List<int> imageBytes,
-  }) async {
-    try {
-      // ファイル名を生成（重複を避けるためタイムスタンプを付与）
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = '${itemCode}_$timestamp.jpg';
-      final path = 'inspection_photos/$inspectionId/$fileName';
-
-      print('📤 画像アップロード開始: $path');
-
-      // Firebase Storageにアップロード
-      final storageRef = _storage.ref().child(path);
-      final uploadTask = await storageRef.putData(
-        Uint8List.fromList(imageBytes),
-        SettableMetadata(
-          contentType: 'image/jpeg',
-          customMetadata: {
-            'inspectionId': inspectionId,
-            'itemCode': itemCode,
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
-        ),
-      );
-
-      // ダウンロードURLを取得
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
-      
-      print('✅ 画像アップロード完了: $downloadUrl');
-      return downloadUrl;
-    } catch (e) {
-      print('❌ 画像アップロードエラー: $e');
-      throw Exception('画像のアップロードに失敗しました: $e');
-    }
-  }
-
-  /// 点検記録の画像を削除
-  Future<void> deleteInspectionPhoto(String photoUrl) async {
-    try {
-      if (photoUrl.isEmpty) return;
-      
-      print('🗑️ 画像削除開始: $photoUrl');
-      
-      // URLからStorage参照を取得
-      final storageRef = _storage.refFromURL(photoUrl);
-      await storageRef.delete();
-      
-      print('✅ 画像削除完了');
-    } catch (e) {
-      print('⚠️ 画像削除エラー（継続）: $e');
-      // 画像削除エラーは致命的ではないため、エラーを投げずに続行
-    }
-  }
 }

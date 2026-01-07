@@ -64,7 +64,6 @@ dependencies:
   # Firebase packages (LOCKED versions)
   firebase_core: 3.6.0
   cloud_firestore: 5.4.3
-  firebase_storage: 12.3.2
 
 dev_dependencies:
   flutter_test:
