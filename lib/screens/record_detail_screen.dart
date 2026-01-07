@@ -340,12 +340,6 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                                               const Icon(Icons.error_outline, size: 48),
                                                               const SizedBox(height: 8),
                                                               const Text('画像の読み込みに失敗しました'),
-                                                              const SizedBox(height: 8),
-                                                              Text(
-                                                                result.photoPath!,
-                                                                style: const TextStyle(fontSize: 10),
-                                                                textAlign: TextAlign.center,
-                                                              ),
                                                             ],
                                                           ),
                                                         );
@@ -368,38 +362,15 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                           errorBuilder: (context, error, stackTrace) {
                                             return Container(
                                               height: 200,
-                                              color: Colors.grey.shade200,
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.broken_image,
-                                                    size: 48,
-                                                    color: Colors.grey.shade400,
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    '画像を読み込めません',
-                                                    style: TextStyle(
-                                                      color: Colors.grey.shade600,
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                          loadingBuilder: (context, child, loadingProgress) {
-                                            if (loadingProgress == null) return child;
-                                            return Container(
-                                              height: 200,
-                                              color: Colors.grey.shade200,
-                                              child: Center(
-                                                child: CircularProgressIndicator(
-                                                  value: loadingProgress.expectedTotalBytes != null
-                                                      ? loadingProgress.cumulativeBytesLoaded /
-                                                          loadingProgress.expectedTotalBytes!
-                                                      : null,
+                                              color: Colors.grey[200],
+                                              child: const Center(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(Icons.error_outline, size: 32),
+                                                    SizedBox(height: 8),
+                                                    Text('画像の読み込みに失敗しました'),
+                                                  ],
                                                 ),
                                               ),
                                             );
