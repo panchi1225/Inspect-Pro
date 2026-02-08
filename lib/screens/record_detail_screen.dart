@@ -139,10 +139,26 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${widget.record.machineType} ${widget.record.machineModel} ${widget.record.machineUnitNumber}',
+                  widget.record.machineType,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '型式: ${widget.record.machineModel}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.record.machineUnitNumber,
+                  style: const TextStyle(
+                    fontSize: 16,
                     color: Colors.white,
                   ),
                 ),
