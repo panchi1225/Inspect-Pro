@@ -131,6 +131,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -143,10 +145,16 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-              child: Column(
-                children: [
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - 
+                           MediaQuery.of(context).padding.top - 
+                           MediaQuery.of(context).padding.bottom,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+                child: Column(
+                  children: [
                   // アプリロゴ・タイトル
                   Container(
                     padding: const EdgeInsets.all(24),
@@ -261,7 +269,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildMenuButton({
