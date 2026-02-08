@@ -107,12 +107,6 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
       final inspectionData = await _firestoreService.getInspections();
       print('📦 取得した点検記録: ${inspectionData.length}件');
       
-      // 最初の3件をサンプル表示
-      for (var i = 0; i < inspectionData.length && i < 3; i++) {
-        final data = inspectionData[i];
-        print('   サンプル$i: 現場=${data['siteName']}, 重機ID=${data['machineId']}, 日付=${data['date']}');
-      }
-      
       // Map<String, dynamic>からInspectionRecordに変換
       final records = inspectionData.map((data) {
         return InspectionRecord(
@@ -138,25 +132,31 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
       
       print('🔍 現場 "$_selectedSite" の点検記録: ${siteRecords.length}件（Firestoreから取得）');
       
-      // 点検データがある重機IDのセット
-      final machineIdsWithRecords = siteRecords.map((r) => r.machineId).toSet();
+      // 重機の機種・型式・号機の組み合わせでフィルタリング（IDではなく）
+      final machineKeys = siteRecords
+          .map((r) => '${r.machineType}|${r.machineModel}|${r.machineUnitNumber}')
+          .toSet();
       
-      print('🔍 点検データがある重機ID: ${machineIdsWithRecords.join(", ")}');
-      
-      // 登録されている全重機のIDを表示
-      print('🔍 全重機ID: ${_machines.map((m) => m.id).join(", ")}');
+      print('🔍 点検データがある重機（機種|型式|号機）: ${machineKeys.join(", ")}');
       
       // 該当する重機のみフィルタリング
       setState(() {
         _filteredMachines = _machines
-            .where((machine) => machineIdsWithRecords.contains(machine.id))
+            .where((machine) {
+              final key = '${machine.type}|${machine.model}|${machine.unitNumber}';
+              return machineKeys.contains(key);
+            })
             .toList();
       });
       
       print('✅ フィルタリング後の重機数: ${_filteredMachines.length}');
       
       if (_filteredMachines.isEmpty) {
-        print('⚠️  該当する重機が見つかりません。重機IDの不一致の可能性があります。');
+        print('⚠️  該当する重機が見つかりません。');
+        print('   登録されている重機:');
+        for (var machine in _machines.take(5)) {
+          print('      ${machine.type}|${machine.model}|${machine.unitNumber}');
+        }
       }
     }
   }
