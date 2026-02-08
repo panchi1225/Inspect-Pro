@@ -253,24 +253,28 @@ class FirestoreService {
   /// 重機種類別の点検項目を取得
   Future<List<InspectionItem>> getInspectionItems(String typeId) async {
     try {
+      print('🔍 点検項目取得開始 (typeId: $typeId)');
+      
       final snapshot = await _firestore
-          .collection('machineTypes')
+          .collection('machine_types')  // 修正: machineTypes → machine_types
           .doc(typeId)
           .collection('items')
-          .orderBy('order')
-          .get();
+          .get();  // 修正: orderByを削除（orderフィールドが存在しない）
+
+      print('📦 Firestore応答: ${snapshot.docs.length}件');
 
       final items = <InspectionItem>[];
       for (final doc in snapshot.docs) {
         final data = doc.data();
         items.add(InspectionItem(
           code: doc.id,
-          name: data['label'] ?? '',
-          checkPoint: data['description'] ?? '',
-          isRequired: data['lawRequired'] == true,
+          name: data['name'] ?? '',  // 修正: label → name
+          checkPoint: data['checkpoint'] ?? '',  // 修正: description → checkpoint
+          isRequired: data['isRequired'] == true,  // 修正: lawRequired → isRequired
         ));
       }
 
+      print('✅ 点検項目変換完了: ${items.length}件');
       return items;
     } catch (e) {
       print('❌ 点検項目取得エラー: $e');
