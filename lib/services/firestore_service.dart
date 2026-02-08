@@ -209,8 +209,8 @@ class FirestoreService {
         final data = doc.data();
         machines.add(Machine(
           id: doc.id,
-          type: data['typeName'] ?? '',
-          typeId: data['typeId'],
+          type: data['type'] ?? '',  // 修正: typeName → type
+          typeId: data['typeId'] ?? '',
           model: data['model'] ?? '',
           unitNumber: data['unitNumber'] ?? '',
         ));
@@ -235,8 +235,8 @@ class FirestoreService {
       final data = doc.data()!;
       return Machine(
         id: doc.id,
-        type: data['typeName'] ?? '',
-        typeId: data['typeId'],
+        type: data['type'] ?? '',  // 修正: typeName → type
+        typeId: data['typeId'] ?? '',
         model: data['model'] ?? '',
         unitNumber: data['unitNumber'] ?? '',
       );
