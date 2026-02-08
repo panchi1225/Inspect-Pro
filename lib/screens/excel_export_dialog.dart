@@ -99,9 +99,19 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
       setState(() {
         _filteredMachines = _machines;
       });
+      print('🔍 現場未選択: 全重機を表示 (${_machines.length}台)');
     } else {
+      print('🔍 現場選択: $_selectedSite');
+      
       // Firestoreから点検記録を取得
       final inspectionData = await _firestoreService.getInspections();
+      print('📦 取得した点検記録: ${inspectionData.length}件');
+      
+      // 最初の3件をサンプル表示
+      for (var i = 0; i < inspectionData.length && i < 3; i++) {
+        final data = inspectionData[i];
+        print('   サンプル$i: 現場=${data['siteName']}, 重機ID=${data['machineId']}, 日付=${data['date']}');
+      }
       
       // Map<String, dynamic>からInspectionRecordに変換
       final records = inspectionData.map((data) {
@@ -133,6 +143,9 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
       
       print('🔍 点検データがある重機ID: ${machineIdsWithRecords.join(", ")}');
       
+      // 登録されている全重機のIDを表示
+      print('🔍 全重機ID: ${_machines.map((m) => m.id).join(", ")}');
+      
       // 該当する重機のみフィルタリング
       setState(() {
         _filteredMachines = _machines
@@ -141,6 +154,10 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
       });
       
       print('✅ フィルタリング後の重機数: ${_filteredMachines.length}');
+      
+      if (_filteredMachines.isEmpty) {
+        print('⚠️  該当する重機が見つかりません。重機IDの不一致の可能性があります。');
+      }
     }
   }
 
@@ -327,6 +344,80 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
               ],
             ),
             const SizedBox(height: 24),
+
+            // 年月選択（最初に配置）
+            const Text(
+              '対象年月',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedYear,
+                    decoration: InputDecoration(
+                      labelText: '年',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    items: List.generate(5, (index) {
+                      final year = DateTime.now().year - index;
+                      return DropdownMenuItem(
+                        value: year,
+                        child: Text('$year年'),
+                      );
+                    }),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedYear = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedMonth,
+                    decoration: InputDecoration(
+                      labelText: '月',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    items: List.generate(12, (index) {
+                      final month = index + 1;
+                      return DropdownMenuItem(
+                        value: month,
+                        child: Text('$month月'),
+                      );
+                    }),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedMonth = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
 
             // 現場選択
             const Text(
@@ -540,80 +631,6 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
                   _selectedPrimeContractorInspector = value;
                 });
               },
-            ),
-            const SizedBox(height: 20),
-
-            // 年月選択
-            const Text(
-              '対象年月',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedYear,
-                    decoration: InputDecoration(
-                      labelText: '年',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    items: List.generate(5, (index) {
-                      final year = DateTime.now().year - index;
-                      return DropdownMenuItem(
-                        value: year,
-                        child: Text('$year年'),
-                      );
-                    }),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedYear = value;
-                        });
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedMonth,
-                    decoration: InputDecoration(
-                      labelText: '月',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    items: List.generate(12, (index) {
-                      final month = index + 1;
-                      return DropdownMenuItem(
-                        value: month,
-                        child: Text('$month月'),
-                      );
-                    }),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedMonth = value;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: 24),
 
