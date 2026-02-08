@@ -357,6 +357,18 @@ class FirestoreService {
     }
   }
 
+  /// 点検記録を削除
+  Future<bool> deleteInspection(String inspectionId) async {
+    try {
+      await _firestore.collection('inspections').doc(inspectionId).delete();
+      print('✅ 点検記録を削除しました: $inspectionId');
+      return true;
+    } catch (e) {
+      print('❌ 点検記録削除エラー: $e');
+      return false;
+    }
+  }
+
   // ============================================================
   // 汎用マスタデータメソッド（マスタデータ管理画面用）
   // ============================================================
