@@ -50,11 +50,11 @@ service cloud.firestore {
     // ============================================
     match /machine_types/{typeId} {
       allow read: if true;           // 誰でも読み取り可能
-      allow write: if false;         // 書き込み禁止（管理者のみ）
+      allow write: if true;          // 書き込み許可（管理者が使用）
       
       match /items/{itemId} {
         allow read: if true;         // 点検項目も読み取り可能
-        allow write: if false;       // 書き込み禁止
+        allow write: if true;        // 書き込み許可
       }
     }
     
@@ -63,7 +63,7 @@ service cloud.firestore {
     // ============================================
     match /machines/{machineId} {
       allow read: if true;           // 誰でも読み取り可能
-      allow write: if false;         // 書き込み禁止（変更・削除防止）
+      allow write: if true;          // 書き込み許可（追加・削除可能）
     }
     
     // ============================================
@@ -71,7 +71,7 @@ service cloud.firestore {
     // ============================================
     match /sites/{siteId} {
       allow read: if true;           // 誰でも読み取り可能
-      allow write: if false;         // 書き込み禁止
+      allow write: if true;          // 書き込み許可（追加・削除可能）
     }
     
     // ============================================
@@ -79,7 +79,7 @@ service cloud.firestore {
     // ============================================
     match /inspectors/{inspectorId} {
       allow read: if true;           // 誰でも読み取り可能
-      allow write: if false;         // 書き込み禁止
+      allow write: if true;          // 書き込み許可（追加・削除可能）
     }
     
     // ============================================
@@ -87,17 +87,17 @@ service cloud.firestore {
     // ============================================
     match /companies/{companyId} {
       allow read: if true;           // 誰でも読み取り可能
-      allow write: if false;         // 書き込み禁止
+      allow write: if true;          // 書き込み許可（追加・削除可能）
     }
     
     // ============================================
-    // 点検記録（重要）
+    // 点検記録
     // ============================================
     match /inspections/{inspectionId} {
       allow read: if true;           // 誰でも読み取り可能
       allow create: if true;         // 新規作成は許可
-      allow update: if true;         // 更新も許可（アプリで使用中）
-      allow delete: if true;         // 削除も許可（アプリで使用中）
+      allow update: if true;         // 更新も許可
+      allow delete: if true;         // 削除も許可
     }
     
     // ============================================
@@ -121,15 +121,18 @@ service cloud.firestore {
 
 ### 保護されるもの
 
-- 🔒 **マスタデータ**: 重機データ、現場名、点検者名などの変更・削除を防止
-- 🛡️ **不正なコレクション**: 予期しないデータの追加を防止
+- 🛡️ **予期しないコレクション**: 定義されていないコレクションへのアクセスを防止
 
 ### 許可されるもの
 
-- ✅ **点検記録の追加**: 新しい点検データを追加可能
-- ✅ **点検記録の更新**: 既存の点検データを更新可能
-- ✅ **点検記録の削除**: アプリから削除機能を使用可能
 - ✅ **すべてのデータの読み取り**: データの閲覧は自由
+- ✅ **点検記録の追加・更新・削除**: 新しい点検データの追加、既存データの更新・削除が可能
+- ✅ **マスタデータの追加・更新・削除**: 管理者モードで以下の操作が可能
+  - 重機データの追加・削除
+  - 現場名の追加・削除
+  - 点検者名の追加・削除
+  - 会社名の追加・削除
+  - 点検項目の追加・削除
 
 ---
 
@@ -199,7 +202,11 @@ https://console.firebase.google.com/project/inspect-pro-22e0a/firestore
 ## 📌 重要な注意事項
 
 - ⚠️ このルールは **社内利用（5人程度）** を想定しています
-- ⚠️ URLを知っている人はアクセス可能です
+- ⚠️ URLを知っている人は以下の操作が可能です:
+  - データの読み取り
+  - 点検データの追加・更新・削除
+  - マスタデータの追加・更新・削除
+- ✅ 社内のみの使用であれば、この設定で十分安全です
 - ⚠️ より厳格なセキュリティが必要な場合は、Firebase Authenticationの統合を検討してください
 
 ---
