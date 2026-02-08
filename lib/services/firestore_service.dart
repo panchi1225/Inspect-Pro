@@ -199,22 +199,25 @@ class FirestoreService {
   /// 重機リストを取得
   Future<List<Machine>> getMachines() async {
     try {
+      // インデックス不要: orderByのみでクエリ実行
       final snapshot = await _firestore
           .collection('machines')
-          .where('isActive', isEqualTo: true)
           .orderBy('sortOrder')  // CSV順でソート
           .get();
 
       final machines = <Machine>[];
       for (final doc in snapshot.docs) {
         final data = doc.data();
-        machines.add(Machine(
-          id: doc.id,
-          type: data['type'] ?? '',  // 修正: typeName → type
-          typeId: data['typeId'] ?? '',
-          model: data['model'] ?? '',
-          unitNumber: data['unitNumber'] ?? '',
-        ));
+        // アプリ側でisActiveフィルタリング
+        if (data['isActive'] == true) {
+          machines.add(Machine(
+            id: doc.id,
+            type: data['type'] ?? '',
+            typeId: data['typeId'] ?? '',
+            model: data['model'] ?? '',
+            unitNumber: data['unitNumber'] ?? '',
+          ));
+        }
       }
 
       return machines;
