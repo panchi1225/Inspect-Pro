@@ -39,7 +39,15 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
   }
 
   Future<void> _loadInspectionItems() async {
-    if (widget.machine.typeId == null) {
+    final typeId = widget.machine.typeId;
+    
+    // デバッグログ
+    print('🔍 点検項目読み込み開始');
+    print('   重機: ${widget.machine.type} ${widget.machine.model} ${widget.machine.unitNumber}');
+    print('   typeId: $typeId');
+    
+    if (typeId == null || typeId.isEmpty) {
+      print('❌ typeIdが空です');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('重機種類IDが取得できません')),
       );
@@ -50,7 +58,10 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
     }
 
     try {
-      final items = await _firestoreService.getInspectionItems(widget.machine.typeId!);
+      print('📦 点検項目を取得中... (typeId: $typeId)');
+      final items = await _firestoreService.getInspectionItems(typeId);
+      print('✅ 点検項目取得完了: ${items.length}件');
+      
       setState(() {
         _items = items;
         _isLoading = false;

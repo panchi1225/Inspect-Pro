@@ -213,7 +213,7 @@ class FirestoreService {
           machines.add(Machine(
             id: doc.id,
             type: data['type'] ?? '',
-            typeId: data['typeId'] ?? '',
+            typeId: data['typeId'],  // 修正: null許容
             model: data['model'] ?? '',
             unitNumber: data['unitNumber'] ?? '',
           ));
@@ -240,7 +240,7 @@ class FirestoreService {
       return Machine(
         id: doc.id,
         type: data['type'] ?? '',  // 修正: typeName → type
-        typeId: data['typeId'] ?? '',
+        typeId: data['typeId'],  // 修正: null許容
         model: data['model'] ?? '',
         unitNumber: data['unitNumber'] ?? '',
       );
