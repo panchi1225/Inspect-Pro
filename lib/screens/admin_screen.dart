@@ -392,14 +392,22 @@ class _AdminScreenState extends State<AdminScreen> {
                           elevation: 2,
                           borderRadius: BorderRadius.circular(12),
                           child: InkWell(
-                            onTap: () {
-                              Navigator.push(
+                            onTap: () async {
+                              final deleted = await Navigator.push<bool>(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       RecordDetailScreen(record: record),
                                 ),
                               );
+                              
+                              // 詳細画面で削除された場合はリストを更新
+                              if (deleted == true) {
+                                setState(() {
+                                  _records.removeWhere((r) => r.id == record.id);
+                                  _applyFilters();
+                                });
+                              }
                             },
                             borderRadius: BorderRadius.circular(12),
                             child: Container(

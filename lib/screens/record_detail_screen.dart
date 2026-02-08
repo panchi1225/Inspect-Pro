@@ -106,6 +106,14 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       appBar: AppBar(
         title: const Text('点検記録詳細'),
         elevation: 0,
+        actions: [
+          // 削除ボタン
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: '削除',
+            onPressed: () => _deleteInspection(context),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -437,5 +445,102 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         ],
       ),
     );
+  }
+
+  /// 点検データを削除
+  Future<void> _deleteInspection(BuildContext context) async {
+    // 削除確認ダイアログを表示
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('削除確認'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('この点検データを削除します。\nよろしいですか?'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('📍 現場: ${widget.record.siteName}'),
+                  Text('🚜 重機: ${widget.record.machineType} ${widget.record.machineModel} ${widget.record.machineUnitNumber}'),
+                  Text('👤 点検者: ${widget.record.inspectorName}'),
+                  Text('📅 点検日: ${DateFormat('yyyy年MM月dd日').format(widget.record.inspectionDate)}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '※ この操作は取り消せません。',
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('削除する'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    // 削除実行
+    try {
+      final success = await _firestoreService.deleteInspection(widget.record.id);
+      if (success) {
+        // 削除成功 → 前の画面に戻る
+        if (context.mounted) {
+          Navigator.pop(context, true); // trueを返して削除されたことを通知
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ 点検データを削除しました'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        throw Exception('削除に失敗しました');
+      }
+    } catch (e) {
+      print('❌ 削除エラー: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 削除に失敗しました: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
