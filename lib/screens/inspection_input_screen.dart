@@ -223,14 +223,71 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
   }
 
   Future<void> _saveInspection() async {
-    // 未入力項目を自動的に「良」に設定
+    // 未入力項目をチェック
+    final uninputItems = <String>[];
     for (final item in _items) {
       if (!_results.containsKey(item.code)) {
-        _results[item.code] = InspectionResult(
-          itemCode: item.code,
-          isGood: true,
-        );
+        uninputItems.add(item.name);
       }
+    }
+
+    // 未入力項目がある場合は警告ダイアログを表示
+    if (uninputItems.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning, color: Colors.orange, size: 32),
+              SizedBox(width: 12),
+              Text('未入力項目があります'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '以下の項目が未入力です。\nすべての項目を入力してから保存してください。',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: uninputItems
+                        .map((name) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.circle, size: 8, color: Colors.orange),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      name,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('閉じる'),
+            ),
+          ],
+        ),
+      );
+      return;
     }
 
     if (widget.machine.typeId == null) {
