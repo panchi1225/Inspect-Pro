@@ -53,34 +53,39 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
   }
 
   List<String> get _machineTypes {
-    final types = _allMachines.map((m) => m.type).toSet().toList();
+    // CSV順を保持しながら重複を除去
+    final seen = <String>{};
+    final types = <String>[];
+    for (var machine in _allMachines) {
+      if (!seen.contains(machine.type)) {
+        seen.add(machine.type);
+        types.add(machine.type);
+      }
+    }
     return types;
   }
 
   List<String> get _models {
     if (_selectedType == null) return [];
-    final models = _allMachines
-        .where((m) => m.type == _selectedType)
-        .map((m) => m.model)
-        .toSet()
-        .toList();
+    // CSV順を保持しながら重複を除去
+    final seen = <String>{};
+    final models = <String>[];
+    for (var machine in _allMachines) {
+      if (machine.type == _selectedType && !seen.contains(machine.model)) {
+        seen.add(machine.model);
+        models.add(machine.model);
+      }
+    }
     return models;
   }
 
   List<String> get _units {
     if (_selectedType == null || _selectedModel == null) return [];
+    // CSV順をそのまま保持（FirestoreでsortOrder順に取得済み）
     final units = _allMachines
         .where((m) => m.type == _selectedType && m.model == _selectedModel)
         .map((m) => m.unitNumber)
         .toList();
-    
-    // 数値順にソート（1号機、2号機、...、10号機）
-    units.sort((a, b) {
-      // 号機番号を抽出（例: "1号機" → 1）
-      final aNum = int.tryParse(a.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-      final bNum = int.tryParse(b.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-      return aNum.compareTo(bNum);
-    });
     
     return units;
   }

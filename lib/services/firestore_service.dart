@@ -202,6 +202,7 @@ class FirestoreService {
       final snapshot = await _firestore
           .collection('machines')
           .where('isActive', isEqualTo: true)
+          .orderBy('sortOrder')  // CSV順でソート
           .get();
 
       final machines = <Machine>[];
