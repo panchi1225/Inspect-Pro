@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'dart:html' as html;
 import 'site_selection_screen.dart';
 import 'admin_screen.dart';
 import 'master_data_management_screen.dart';
 import 'login_screen.dart';
-import 'pdf_viewer_screen.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
 
@@ -34,16 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openManual() {
     if (kIsWeb) {
-      // Web版: PDFビューアー画面を開く
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const PdfViewerScreen(
-            pdfUrl: 'assets/documents/manual.pdf',
-            title: 'Inspect Pro マニュアル',
-          ),
-        ),
-      );
+      // Web版: 新しいタブでPDFを開く
+      html.window.open('assets/documents/manual.pdf', '_blank');
     } else {
       // モバイル版: ダイアログで案内
       showDialog(
