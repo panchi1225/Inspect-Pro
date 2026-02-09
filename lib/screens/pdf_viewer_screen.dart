@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
-import 'dart:ui' as ui;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:ui_web' as ui_web;
 
 class PdfViewerScreen extends StatefulWidget {
   final String pdfUrl;
@@ -29,8 +31,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   }
 
   void _registerIframe() {
-    // ignore: undefined_prefixed_name
-    ui.platformViewRegistry.registerViewFactory(
+    ui_web.platformViewRegistry.registerViewFactory(
       _iframeId,
       (int viewId) {
         final iframe = html.IFrameElement()
