@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'dart:html' as html;
 import 'site_selection_screen.dart';
 import 'admin_screen.dart';
 import 'master_data_management_screen.dart';
@@ -30,12 +32,51 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _openManual() {
+    if (kIsWeb) {
+      // Web版: 新しいタブでPDFを開く
+      html.window.open('assets/documents/manual.pdf', '_blank');
+    } else {
+      // モバイル版: ダイアログで案内
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.menu_book, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('マニュアル'),
+            ],
+          ),
+          content: const Text(
+            'マニュアルはWeb版でご確認いただけます。\n\n'
+            'PCまたはタブレットのブラウザから\n'
+            'Inspect Proにアクセスしてください。'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('閉じる'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = AuthService();
     
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu_book),
+          tooltip: 'マニュアル',
+          onPressed: () {
+            _openManual();
+          },
+        ),
         title: Text('${authService.currentRole?.displayName ?? ""}メニュー'),
         actions: [
           // キャッシュクリアボタン（管理者のみ）
