@@ -152,6 +152,26 @@ class WebExcelService {
       // A4: ・その他は点検すべき事項とみなした箇所（J4から移動）
       _setCell(sheet, 'A4', '・その他は点検すべき事項とみなした箇所', fontSize: 14);
       
+      // R3, R4: 機械種類ごとの法令記載
+      final machineType = machine.type;
+      if (machineType == '油圧ショベル' || 
+          machineType == 'ブルドーザー' || 
+          machineType == 'タイヤショベル' || 
+          machineType == 'コンバインドローラー' || 
+          machineType == '振動ローラー' || 
+          machineType == 'タイヤローラー') {
+        // R3: 【安衛則 第170条】
+        _setCell(sheet, 'R3', '【安衛則 第170条】', fontSize: 14);
+      } else if (machineType == '不整地運搬車') {
+        // R3: 【安衛則 第151条57】
+        _setCell(sheet, 'R3', '【安衛則 第151条57】', fontSize: 14);
+      }
+      
+      if (machineType == '油圧ショベル') {
+        // R4: 【クレーン則 第78条】
+        _setCell(sheet, 'R4', '【クレーン則 第78条】', fontSize: 14);
+      }
+      
       // J3, J4は削除（A3, A4に移動したため）
       // _setCell(sheet, 'J3', '・★は法的要求事項', fontSize: 14);
       // _setCell(sheet, 'J4', '・その他は点検すべき事項とみなした箇所', fontSize: 14);

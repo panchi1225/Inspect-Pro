@@ -278,6 +278,21 @@ class ExcelExportService {
       print('  - 行3: 法的要求事項（J3から移動）');
       setCellWithStyle(sheet, 2, 0, '・★は法的要求事項', normalStyle);
       
+      // R3: 機械種類ごとの法令記載
+      var machineTypeForLaw = machine.type;
+      if (machineTypeForLaw == '油圧ショベル' || 
+          machineTypeForLaw == 'ブルドーザー' || 
+          machineTypeForLaw == 'タイヤショベル' || 
+          machineTypeForLaw == 'コンバインドローラー' || 
+          machineTypeForLaw == '振動ローラー' || 
+          machineTypeForLaw == 'タイヤローラー') {
+        // R3: 【安衛則 第170条】
+        setCellWithStyle(sheet, 2, 17, '【安衛則 第170条】', normalStyle);
+      } else if (machineTypeForLaw == '不整地運搬車') {
+        // R3: 【安衛則 第151条57】
+        setCellWithStyle(sheet, 2, 17, '【安衛則 第151条57】', normalStyle);
+      }
+      
       // AM3:AW3（38～48列）を結合して「所有会社名」
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
       setCellWithStyle(sheet, 2, 38, '所有会社名', center11ptNoBgStyle);
@@ -303,6 +318,12 @@ class ExcelExportService {
       // ============================================================
       print('  - 行4: 点検すべき事項（J4から移動）');
       setCellWithStyle(sheet, 3, 0, '・その他は点検すべき事項とみなした箇所', normalStyle);
+      
+      // R4: 油圧ショベルの場合のみクレーン則記載
+      if (machineTypeForLaw == '油圧ショベル') {
+        // R4: 【クレーン則 第78条】
+        setCellWithStyle(sheet, 3, 17, '【クレーン則 第78条】', normalStyle);
+      }
       
       // AM4:AW4（38～48列）を結合
       sheet.merge(CellIndex.indexByString('AM4'), CellIndex.indexByString('AW4'));
