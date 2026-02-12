@@ -477,15 +477,16 @@ class _AdminScreenState extends State<AdminScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      // 削除ボタン
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline),
-                                        color: Colors.red,
-                                        iconSize: 20,
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        onPressed: () => _deleteInspection(context, record),
-                                      ),
+                                      // 削除ボタン（管理者のみ表示）
+                                      if (authService.isAdmin)
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline),
+                                          color: Colors.red,
+                                          iconSize: 20,
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          onPressed: () => _deleteInspection(context, record),
+                                        ),
                                     ],
                                   ),
                                   const SizedBox(height: 8),

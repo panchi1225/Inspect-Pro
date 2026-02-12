@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import '../models/inspection_record.dart';
 import '../models/inspection_item.dart';
 import '../services/firestore_service.dart';
+import '../services/auth_service.dart';
 
 class RecordDetailScreen extends StatefulWidget {
   final InspectionRecord record;
@@ -107,12 +108,13 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         title: const Text('点検記録詳細'),
         elevation: 0,
         actions: [
-          // 削除ボタン
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: '削除',
-            onPressed: () => _deleteInspection(context),
-          ),
+          // 削除ボタン（管理者のみ表示）
+          if (AuthService().isAdmin)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: '削除',
+              onPressed: () => _deleteInspection(context),
+            ),
         ],
       ),
       body: _isLoading
