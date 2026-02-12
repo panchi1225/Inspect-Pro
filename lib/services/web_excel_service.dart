@@ -146,14 +146,15 @@ class WebExcelService {
       // A2: 削除（年月は記載しない）
       // _setCell(sheet, 'A2', '$year年$month月', fontSize: 14);
       
-      // A3: 関係法令（すべて【安衛則第１７０条】に統一）
-      _setCell(sheet, 'A3', '　【安衛則第１７０条】', fontSize: 14);
+      // A3: ・★は法的要求事項（J3から移動）
+      _setCell(sheet, 'A3', '・★は法的要求事項', fontSize: 14);
       
-      // A4: 削除
-      // _setCell(sheet, 'A4', '　【安衛則第１７０条】', fontSize: 14);
+      // A4: ・その他は点検すべき事項とみなした箇所（J4から移動）
+      _setCell(sheet, 'A4', '・その他は点検すべき事項とみなした箇所', fontSize: 14);
       
-      _setCell(sheet, 'J3', '・★は法的要求事項', fontSize: 14);
-      _setCell(sheet, 'J4', '・その他は点検すべき事項とみなした箇所', fontSize: 14);
+      // J3, J4は削除（A3, A4に移動したため）
+      // _setCell(sheet, 'J3', '・★は法的要求事項', fontSize: 14);
+      // _setCell(sheet, 'J4', '・その他は点検すべき事項とみなした箇所', fontSize: 14);
       
       // A5: 月度 機械名 作業開始前点検表
       _setCell(sheet, 'A5', '${month}月度　${machine.type}　作業開始前点検表', 

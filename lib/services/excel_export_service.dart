@@ -273,11 +273,10 @@ class ExcelExportService {
       // ============================================================
 
       // ============================================================
-      // 行3: 法的要求事項と各種ヘッダー情報（14pt）
+      // 行3: 法的要求事項（J3から移動）
       // ============================================================
-      print('  - 行3: 法的要求事項とヘッダー情報（14pt）');
-      setCellWithStyle(sheet, 2, 0, '　【ｸﾚｰﾝ則第７８条】', normalStyle);
-      setCellWithStyle(sheet, 2, 10, '・★は法的要求事項', normalStyle);
+      print('  - 行3: 法的要求事項（J3から移動）');
+      setCellWithStyle(sheet, 2, 0, '・★は法的要求事項', normalStyle);
       
       // AM3:AW3（38～48列）を結合して「所有会社名」
       sheet.merge(CellIndex.indexByString('AM3'), CellIndex.indexByString('AW3'));
@@ -300,11 +299,10 @@ class ExcelExportService {
       setCellWithStyle(sheet, 2, 65, '作業所長確認', center11ptNoBgStyle);
 
       // ============================================================
-      // 行4: 法的要求事項（14pt）
+      // 行4: 点検すべき事項（J4から移動）
       // ============================================================
-      print('  - 行4: 法的要求事項（14pt）');
-      setCellWithStyle(sheet, 3, 0, '　【安衛則第１７０条】', normalStyle);
-      setCellWithStyle(sheet, 3, 10, '・その他は点検すべき事項とみなした箇所', normalStyle);
+      print('  - 行4: 点検すべき事項（J4から移動）');
+      setCellWithStyle(sheet, 3, 0, '・その他は点検すべき事項とみなした箇所', normalStyle);
       
       // AM4:AW4（38～48列）を結合
       sheet.merge(CellIndex.indexByString('AM4'), CellIndex.indexByString('AW4'));
