@@ -22,6 +22,7 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
   
   List<Machine> _allMachines = [];
   bool _isLoading = true;
+  bool _isSaving = false;
 
   String? _selectedType;
   String? _selectedModel;
@@ -39,6 +40,7 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
     });
 
     try {
+      await _firestoreService.ensureAllModelsHaveInitialTenUnits();
       final machines = await _firestoreService.getMachines();
       setState(() {
         _allMachines = machines;
@@ -150,6 +152,104 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
     );
   }
 
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _showAddModelDialog() async {
+    if (_selectedType == null) return;
+
+    final controller = TextEditingController();
+    final model = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('型式を追加'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: '追加する型式名',
+              hintText: '例: PC200-11',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('キャンセル'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text('追加する'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (model == null) return;
+    final modelName = model.trim();
+    if (modelName.isEmpty) {
+      _showSnackBar('型式名を入力してください');
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      await _firestoreService.addModelWithInitialUnits(
+        type: _selectedType!,
+        model: modelName,
+      );
+      await _loadMachines();
+      setState(() {
+        _selectedModel = modelName;
+        _selectedUnit = '1号機';
+      });
+      _showSnackBar('型式「$modelName」を追加しました（1号機〜10号機を作成）');
+    } catch (e) {
+      _showSnackBar('$e'.replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _addNextUnit() async {
+    if (_selectedType == null || _selectedModel == null) return;
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final machine = await _firestoreService.addNextUnitForModel(
+        type: _selectedType!,
+        model: _selectedModel!,
+      );
+      await _loadMachines();
+      setState(() {
+        _selectedUnit = machine.unitNumber;
+      });
+      _showSnackBar('号機「${machine.unitNumber}」を追加しました');
+    } catch (e) {
+      _showSnackBar('$e'.replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -246,6 +346,17 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
                       icon: Icons.settings,
                       enabled: _selectedType != null,
                     ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: (_selectedType != null && !_isSaving)
+                            ? _showAddModelDialog
+                            : null,
+                        icon: const Icon(Icons.add),
+                        label: const Text('型式を追加'),
+                      ),
+                    ),
 
                     const SizedBox(height: 16),
 
@@ -258,6 +369,18 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
                       onChanged: _onUnitChanged,
                       icon: Icons.numbers,
                       enabled: _selectedModel != null,
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            (_selectedType != null && _selectedModel != null && !_isSaving)
+                                ? _addNextUnit
+                                : null,
+                        icon: const Icon(Icons.add_circle_outline),
+                        label: const Text('号機を追加'),
+                      ),
                     ),
 
                     const SizedBox(height: 32),

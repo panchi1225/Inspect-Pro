@@ -197,6 +197,8 @@ class FirestoreService {
   // 重機データ
   // ============================================================
 
+  static final RegExp _unitNumberPattern = RegExp(r'^(\d+)号機$');
+
   /// 重機リストを取得
   Future<List<Machine>> getMachines() async {
     try {
@@ -249,6 +251,251 @@ class FirestoreService {
       print('❌ 重機取得エラー (ID: $id): $e');
       return null;
     }
+  }
+
+  String _normalizeText(String value) => value.trim().toLowerCase();
+
+  int? _parseUnitNumber(String unitNumber) {
+    final match = _unitNumberPattern.firstMatch(unitNumber.trim());
+    if (match == null) return null;
+    return int.tryParse(match.group(1)!);
+  }
+
+  String _unitLabel(int number) => '${number}号機';
+
+  String? _firstNonEmptyString(Iterable<dynamic> values) {
+    for (final value in values) {
+      if (value != null && '$value'.isNotEmpty) {
+        return '$value';
+      }
+    }
+    return null;
+  }
+
+  String _machineDocumentId({
+    required String type,
+    required String model,
+    required int unitNumber,
+  }) {
+    String normalizeKey(String value) {
+      final normalized = _normalizeText(value).replaceAll(RegExp(r'\s+'), '_');
+      final safe = normalized.replaceAll(RegExp(r'[^a-z0-9_\-ぁ-んァ-ヶ一-龥]'), '-');
+      return safe.isEmpty ? 'unknown' : safe;
+    }
+
+    return '${normalizeKey(type)}__${normalizeKey(model)}__$unitNumber';
+  }
+
+  /// 指定した重機種類×型式に対して 1号機〜10号機 を作成
+  Future<List<Machine>> addModelWithInitialUnits({
+    required String type,
+    required String model,
+  }) async {
+    final trimmedType = type.trim();
+    final trimmedModel = model.trim();
+    if (trimmedType.isEmpty || trimmedModel.isEmpty) {
+      throw Exception('重機種類と型式を入力してください');
+    }
+
+    final machinesSnapshot = await _firestore
+        .collection('machines')
+        .orderBy('sortOrder')
+        .get();
+
+    final allMachines = machinesSnapshot.docs.map((doc) => doc.data()).toList();
+    final normalizedType = _normalizeText(trimmedType);
+    final normalizedModel = _normalizeText(trimmedModel);
+
+    for (final machine in allMachines) {
+      final machineType = _normalizeText('${machine['type'] ?? ''}');
+      final machineModel = _normalizeText('${machine['model'] ?? ''}');
+      if (machineType == normalizedType && machineModel == normalizedModel) {
+        throw Exception('「$trimmedType」には同じ型式「$trimmedModel」が既にあります');
+      }
+    }
+
+    final maxSortOrder = allMachines
+        .map((m) => (m['sortOrder'] as num?)?.toInt() ?? 0)
+        .fold<int>(0, (previous, current) => current > previous ? current : previous);
+
+    String? resolvedTypeId;
+    for (final machine in allMachines) {
+      if (_normalizeText('${machine['type'] ?? ''}') == normalizedType &&
+          machine['typeId'] != null &&
+          '${machine['typeId']}'.isNotEmpty) {
+        resolvedTypeId = '${machine['typeId']}';
+        break;
+      }
+    }
+
+    final batch = _firestore.batch();
+    var sortOrder = maxSortOrder;
+    final createdMachines = <Machine>[];
+
+    for (var unit = 1; unit <= 10; unit++) {
+      sortOrder++;
+      final unitText = _unitLabel(unit);
+      final docRef = _firestore
+          .collection('machines')
+          .doc(_machineDocumentId(type: trimmedType, model: trimmedModel, unitNumber: unit));
+
+      batch.set(docRef, {
+        'type': trimmedType,
+        if (resolvedTypeId != null) 'typeId': resolvedTypeId,
+        'model': trimmedModel,
+        'unitNumber': unitText,
+        'sortOrder': sortOrder,
+        'isActive': true,
+      });
+
+      createdMachines.add(Machine(
+        id: docRef.id,
+        type: trimmedType,
+        typeId: resolvedTypeId,
+        model: trimmedModel,
+        unitNumber: unitText,
+      ));
+    }
+
+    await batch.commit();
+    return createdMachines;
+  }
+
+  /// 指定した重機種類×型式に対して次の号機を1台追加
+  Future<Machine> addNextUnitForModel({
+    required String type,
+    required String model,
+  }) async {
+    final trimmedType = type.trim();
+    final trimmedModel = model.trim();
+
+    final machinesSnapshot = await _firestore
+        .collection('machines')
+        .orderBy('sortOrder')
+        .get();
+    final allDocs = machinesSnapshot.docs;
+
+    final targetDocs = allDocs.where((doc) {
+      final data = doc.data();
+      return _normalizeText('${data['type'] ?? ''}') == _normalizeText(trimmedType) &&
+          _normalizeText('${data['model'] ?? ''}') == _normalizeText(trimmedModel) &&
+          data['isActive'] == true;
+    }).toList();
+
+    if (targetDocs.isEmpty) {
+      throw Exception('対象の型式が見つかりません');
+    }
+
+    final existingUnitNumbers = targetDocs
+        .map((doc) => _parseUnitNumber('${doc.data()['unitNumber'] ?? ''}'))
+        .whereType<int>()
+        .toSet();
+
+    final maxUnit = existingUnitNumbers.isEmpty
+        ? 0
+        : existingUnitNumbers.reduce((a, b) => a > b ? a : b);
+    final nextUnit = maxUnit + 1;
+    if (existingUnitNumbers.contains(nextUnit)) {
+      throw Exception('次の号機が既に存在するため追加できません');
+    }
+
+    final maxSortOrder = allDocs
+        .map((doc) => (doc.data()['sortOrder'] as num?)?.toInt() ?? 0)
+        .fold<int>(0, (previous, current) => current > previous ? current : previous);
+
+    final typeId = _firstNonEmptyString(
+      targetDocs.map((doc) => doc.data()['typeId']),
+    );
+
+    final docRef = _firestore
+        .collection('machines')
+        .doc(_machineDocumentId(type: trimmedType, model: trimmedModel, unitNumber: nextUnit));
+    final unitLabel = _unitLabel(nextUnit);
+
+    await docRef.set({
+      'type': trimmedType,
+      if (typeId != null) 'typeId': typeId,
+      'model': trimmedModel,
+      'unitNumber': unitLabel,
+      'sortOrder': maxSortOrder + 1,
+      'isActive': true,
+    });
+
+    return Machine(
+      id: docRef.id,
+      type: trimmedType,
+      typeId: typeId,
+      model: trimmedModel,
+      unitNumber: unitLabel,
+    );
+  }
+
+  /// 既存の全型式について不足している号機を 10号機 まで補完
+  Future<int> ensureAllModelsHaveInitialTenUnits() async {
+    final machinesSnapshot = await _firestore
+        .collection('machines')
+        .orderBy('sortOrder')
+        .get();
+    final allDocs = machinesSnapshot.docs;
+    if (allDocs.isEmpty) return 0;
+
+    final maxSortOrder = allDocs
+        .map((doc) => (doc.data()['sortOrder'] as num?)?.toInt() ?? 0)
+        .fold<int>(0, (previous, current) => current > previous ? current : previous);
+
+    final grouped = <String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>{};
+    for (final doc in allDocs) {
+      final data = doc.data();
+      if (data['isActive'] != true) continue;
+      final type = '${data['type'] ?? ''}'.trim();
+      final model = '${data['model'] ?? ''}'.trim();
+      if (type.isEmpty || model.isEmpty) continue;
+      final key = '${_normalizeText(type)}::${_normalizeText(model)}';
+      grouped.putIfAbsent(key, () => []).add(doc);
+    }
+
+    final batch = _firestore.batch();
+    var sortOrder = maxSortOrder;
+    var createdCount = 0;
+
+    for (final docs in grouped.values) {
+      final firstData = docs.first.data();
+      final type = '${firstData['type'] ?? ''}'.trim();
+      final model = '${firstData['model'] ?? ''}'.trim();
+      final typeId = _firstNonEmptyString(
+        docs.map((doc) => doc.data()['typeId']),
+      );
+
+      final existingUnits = docs
+          .map((doc) => _parseUnitNumber('${doc.data()['unitNumber'] ?? ''}'))
+          .whereType<int>()
+          .toSet();
+
+      for (var unit = 1; unit <= 10; unit++) {
+        if (existingUnits.contains(unit)) continue;
+        sortOrder++;
+        createdCount++;
+
+        final docRef = _firestore
+            .collection('machines')
+            .doc(_machineDocumentId(type: type, model: model, unitNumber: unit));
+
+        batch.set(docRef, {
+          'type': type,
+          if (typeId != null) 'typeId': typeId,
+          'model': model,
+          'unitNumber': _unitLabel(unit),
+          'sortOrder': sortOrder,
+          'isActive': true,
+        });
+      }
+    }
+
+    if (createdCount > 0) {
+      await batch.commit();
+    }
+
+    return createdCount;
   }
 
   /// 重機種類別の点検項目を取得
