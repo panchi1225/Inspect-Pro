@@ -18,9 +18,13 @@ class InspectorSelectionScreen extends StatefulWidget {
 class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   String? _selectedInspector;
+  String? _selectedCompanyId;
+  String? _selectedCompanyName;
+  bool _isChoosingCompany = true;
   final TextEditingController _searchController = TextEditingController();
-  List<String> _allInspectors = [];
-  List<String> _filteredInspectors = [];
+  List<Map<String, dynamic>> _allInspectors = [];
+  List<Map<String, dynamic>> _filteredInspectors = [];
+  List<Map<String, String>> _companies = [];
   bool _isLoading = true;
 
   @override
@@ -35,17 +39,32 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     });
 
     try {
-      final inspectors = await _firestoreService.getMasterData('inspectors');
+      final inspectors = await _firestoreService.getInspectorsWithCompany();
+      final companies = await _firestoreService.getCompanyOptions();
+
+      final hasUnassigned = inspectors.any(
+        (inspector) => inspector['companyId'] == null,
+      );
+
+      final companyList = [...companies];
+      if (hasUnassigned) {
+        companyList.add({
+          'id': '__unassigned__',
+          'name': '所属未設定',
+        });
+      }
+
       setState(() {
         _allInspectors = inspectors;
-        _filteredInspectors = _allInspectors;
+        _companies = companyList;
+        _filteredInspectors = [];
         _isLoading = false;
       });
     } catch (e) {
       print('❌ 点検者リスト読み込みエラー: $e');
       setState(() {
         _allInspectors = [];
-        _filteredInspectors = _allInspectors;
+        _filteredInspectors = [];
         _isLoading = false;
       });
     }
@@ -58,15 +77,41 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
   }
 
   void _filterInspectors(String query) {
+    if (_selectedCompanyId == null) {
+      setState(() {
+        _filteredInspectors = [];
+      });
+      return;
+    }
+
+    final inspectorsInCompany = _allInspectors.where((inspector) {
+      final companyId = inspector['companyId'] as String?;
+      return _selectedCompanyId == '__unassigned__'
+          ? companyId == null
+          : companyId == _selectedCompanyId;
+    }).toList();
+
     setState(() {
       if (query.isEmpty) {
-        _filteredInspectors = _allInspectors;
+        _filteredInspectors = inspectorsInCompany;
       } else {
-        _filteredInspectors = _allInspectors
-            .where((name) => name.contains(query))
+        _filteredInspectors = inspectorsInCompany
+            .where((inspector) =>
+                (inspector['name'] as String? ?? '').contains(query))
             .toList();
       }
     });
+  }
+
+  void _selectCompany(Map<String, String> company) {
+    setState(() {
+      _selectedCompanyId = company['id'];
+      _selectedCompanyName = company['name'];
+      _selectedInspector = null;
+      _isChoosingCompany = false;
+      _searchController.clear();
+    });
+    _filterInspectors('');
   }
 
   @override
@@ -128,8 +173,9 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
               child: TextField(
                 controller: _searchController,
                 onChanged: _filterInspectors,
+                enabled: !_isChoosingCompany,
                 decoration: InputDecoration(
-                  hintText: '点検者名で検索...',
+                  hintText: _isChoosingCompany ? '先に会社を選択してください' : '点検者名で検索...',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.white,
@@ -141,9 +187,46 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
               ),
             ),
             
+            if (!_isChoosingCompany && _selectedCompanyName != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.business, size: 20, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '選択中の会社: $_selectedCompanyName',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _isChoosingCompany = true;
+                          _selectedInspector = null;
+                          _searchController.clear();
+                        });
+                      },
+                      icon: const Icon(Icons.swap_horiz, size: 18),
+                      label: const Text('会社を変更'),
+                    ),
+                  ],
+                ),
+              ),
+
             // 点検者リスト
             Expanded(
-              child: _filteredInspectors.isEmpty
+              child: _isChoosingCompany
+                  ? _buildCompanyList()
+                  : _filteredInspectors.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -168,7 +251,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
                       padding: const EdgeInsets.all(16),
                       itemCount: _filteredInspectors.length,
                       itemBuilder: (context, index) {
-                        final inspector = _filteredInspectors[index];
+                        final inspector = _filteredInspectors[index]['name'] as String? ?? '';
                         final isSelected = _selectedInspector == inspector;
                         
                         return Padding(
@@ -245,8 +328,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
             ),
             
             // 次へボタン
-            if (_selectedInspector != null)
-              Container(
+            Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -264,7 +346,9 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: _selectedInspector == null
+                          ? null
+                          : () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -304,6 +388,85 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCompanyList() {
+    if (_companies.isEmpty) {
+      return Center(
+        child: Text(
+          '会社が登録されていません',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _companies.length,
+      itemBuilder: (context, index) {
+        final company = _companies[index];
+        final companyId = company['id'] ?? '';
+        final count = _allInspectors.where((inspector) {
+          final inspectorCompanyId = inspector['companyId'] as String?;
+          return companyId == '__unassigned__'
+              ? inspectorCompanyId == null
+              : inspectorCompanyId == companyId;
+        }).length;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Material(
+            elevation: 2,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: () => _selectCompany(company),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.business, color: Colors.blue),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        company['name'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '$count名',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

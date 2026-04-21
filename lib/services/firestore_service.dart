@@ -404,6 +404,102 @@ class FirestoreService {
     }
   }
 
+  /// 所有会社の候補一覧（ID・名前）を取得
+  Future<List<Map<String, String>>> getCompanyOptions() async {
+    try {
+      final snapshot = await _firestore
+          .collection('companies')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final docs = snapshot.docs.toList();
+      docs.sort((a, b) {
+        final aTime = a.data()['createdAt'];
+        final bTime = b.data()['createdAt'];
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return -1;
+        if (bTime == null) return 1;
+        return aTime.compareTo(bTime);
+      });
+
+      return docs.map((doc) {
+        return {
+          'id': doc.id,
+          'name': (doc.data()['name'] ?? '') as String,
+        };
+      }).toList();
+    } catch (e) {
+      print('❌ 会社候補取得エラー: $e');
+      return [];
+    }
+  }
+
+  /// 点検者一覧（所属会社情報付き）を取得
+  /// 既存データ互換のため、companyId/companyNameが無い場合はnullとして返す
+  Future<List<Map<String, dynamic>>> getInspectorsWithCompany() async {
+    try {
+      final snapshot = await _firestore
+          .collection('inspectors')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final docs = snapshot.docs.toList();
+      docs.sort((a, b) {
+        final aTime = a.data()['createdAt'];
+        final bTime = b.data()['createdAt'];
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return -1;
+        if (bTime == null) return 1;
+        return aTime.compareTo(bTime);
+      });
+
+      return docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': (data['name'] ?? '') as String,
+          'companyId': data['companyId'],
+          'companyName': data['companyName'],
+        };
+      }).toList();
+    } catch (e) {
+      print('❌ 点検者（所属会社付き）取得エラー: $e');
+      return [];
+    }
+  }
+
+  /// 点検者を追加（所属会社付き）
+  Future<void> addInspectorWithCompany({
+    required String inspectorName,
+    required String companyId,
+    required String companyName,
+  }) async {
+    try {
+      await _firestore.collection('inspectors').add({
+        'name': inspectorName,
+        'companyId': companyId,
+        'companyName': companyName,
+        'isActive': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ inspectors「$inspectorName」を追加しました（会社: $companyName）');
+    } catch (e) {
+      print('❌ inspectors追加エラー: $e');
+      throw Exception('inspectors追加に失敗しました: $e');
+    }
+  }
+
+  /// 点検者を削除（ドキュメントID指定）
+  Future<void> deleteInspectorById(String inspectorId) async {
+    try {
+      await _firestore.collection('inspectors').doc(inspectorId).delete();
+      print('✅ inspectors ID「$inspectorId」を削除しました');
+    } catch (e) {
+      print('❌ inspectors削除エラー: $e');
+      throw Exception('inspectors削除に失敗しました: $e');
+    }
+  }
+
   /// マスタデータを追加
   Future<void> addMasterData(String collectionName, String name) async {
     try {
