@@ -391,21 +391,18 @@ class _MasterDataManagementScreenState
       final companyId = company['id'] ?? '';
       groupedInspectors[companyId] = [];
     }
-    groupedInspectors['__unassigned__'] = [];
 
     for (final inspector in _inspectors) {
       final companyId = inspector['companyId'] as String?;
       if (companyId != null && groupedInspectors.containsKey(companyId)) {
         groupedInspectors[companyId]!.add(inspector);
-      } else {
-        groupedInspectors['__unassigned__']!.add(inspector);
       }
     }
 
-    final hasUnassigned = groupedInspectors['__unassigned__']!.isNotEmpty;
     final orderedCompanyIds = [
-      ..._companyOptions.map((company) => company['id'] ?? ''),
-      if (hasUnassigned) '__unassigned__',
+      ..._companyOptions
+          .map((company) => company['id'] ?? '')
+          .where((companyId) => (groupedInspectors[companyId] ?? []).isNotEmpty),
     ];
 
     return Card(
@@ -444,11 +441,9 @@ class _MasterDataManagementScreenState
             else
               ...orderedCompanyIds.map((companyId) {
                 final inspectors = groupedInspectors[companyId] ?? [];
-                final companyName = companyId == '__unassigned__'
-                    ? '所属未設定'
-                    : (_companyOptions
-                            .firstWhere((company) => company['id'] == companyId)['name'] ??
-                        '');
+                final companyName = (_companyOptions
+                        .firstWhere((company) => company['id'] == companyId)['name'] ??
+                    '');
                 final isExpanded = _expandedCompanyIds.contains(companyId);
 
                 return Column(

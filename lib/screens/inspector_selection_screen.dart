@@ -41,18 +41,10 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     try {
       final inspectors = await _firestoreService.getInspectorsWithCompany();
       final companies = await _firestoreService.getCompanyOptions();
-
-      final hasUnassigned = inspectors.any(
-        (inspector) => inspector['companyId'] == null,
-      );
-
-      final companyList = [...companies];
-      if (hasUnassigned) {
-        companyList.add({
-          'id': '__unassigned__',
-          'name': '所属未設定',
-        });
-      }
+      final companyList = companies.where((company) {
+        final companyId = company['id'] ?? '';
+        return inspectors.any((inspector) => inspector['companyId'] == companyId);
+      }).toList();
 
       setState(() {
         _allInspectors = inspectors;
@@ -86,9 +78,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
 
     final inspectorsInCompany = _allInspectors.where((inspector) {
       final companyId = inspector['companyId'] as String?;
-      return _selectedCompanyId == '__unassigned__'
-          ? companyId == null
-          : companyId == _selectedCompanyId;
+      return companyId == _selectedCompanyId;
     }).toList();
 
     setState(() {
@@ -412,9 +402,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
         final companyId = company['id'] ?? '';
         final count = _allInspectors.where((inspector) {
           final inspectorCompanyId = inspector['companyId'] as String?;
-          return companyId == '__unassigned__'
-              ? inspectorCompanyId == null
-              : inspectorCompanyId == companyId;
+          return inspectorCompanyId == companyId;
         }).length;
 
         return Padding(

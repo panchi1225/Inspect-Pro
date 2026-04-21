@@ -10,6 +10,7 @@ class FirestoreService {
   FirestoreService._internal();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String _defaultCompanyName = '松浦建設株式会社';
 
   // ============================================================
   // マスタデータ管理
@@ -435,9 +436,19 @@ class FirestoreService {
   }
 
   /// 点検者一覧（所属会社情報付き）を取得
-  /// 既存データ互換のため、companyId/companyNameが無い場合はnullとして返す
+  /// 既存データ互換のため、companyId/companyNameが無い既存データは
+  /// 「松浦建設株式会社」に補完して返却・保存する
   Future<List<Map<String, dynamic>>> getInspectorsWithCompany() async {
     try {
+      // 既存データ移行: 所属未設定の点検者を既定会社に補完
+      final companies = await getCompanyOptions();
+      final defaultCompany = companies.firstWhere(
+        (company) => company['name'] == _defaultCompanyName,
+        orElse: () => <String, String>{},
+      );
+      final defaultCompanyId = defaultCompany['id'];
+      final defaultCompanyName = defaultCompany['name'];
+
       final snapshot = await _firestore
           .collection('inspectors')
           .where('isActive', isEqualTo: true)
@@ -453,13 +464,50 @@ class FirestoreService {
         return aTime.compareTo(bTime);
       });
 
+      if (defaultCompanyId != null &&
+          defaultCompanyId.isNotEmpty &&
+          defaultCompanyName != null &&
+          defaultCompanyName.isNotEmpty) {
+        final batch = _firestore.batch();
+        var updateCount = 0;
+
+        for (final doc in docs) {
+          final data = doc.data();
+          final companyId = data['companyId'] as String?;
+          final companyName = data['companyName'] as String?;
+          final isMissingCompanyId = companyId == null || companyId.trim().isEmpty;
+          final isMissingCompanyName =
+              companyName == null || companyName.trim().isEmpty;
+
+          if (isMissingCompanyId || isMissingCompanyName) {
+            batch.update(doc.reference, {
+              'companyId': defaultCompanyId,
+              'companyName': defaultCompanyName,
+            });
+            updateCount++;
+          }
+        }
+
+        if (updateCount > 0) {
+          await batch.commit();
+          print('✅ 点検者の既存データ移行: $updateCount 件を$_defaultCompanyNameへ補完');
+        }
+      }
+
       return docs.map((doc) {
         final data = doc.data();
+        final companyId = (data['companyId'] as String?)?.trim();
+        final companyName = (data['companyName'] as String?)?.trim();
+
         return {
           'id': doc.id,
           'name': (data['name'] ?? '') as String,
-          'companyId': data['companyId'],
-          'companyName': data['companyName'],
+          'companyId': (companyId == null || companyId.isEmpty)
+              ? defaultCompanyId
+              : companyId,
+          'companyName': (companyName == null || companyName.isEmpty)
+              ? defaultCompanyName
+              : companyName,
         };
       }).toList();
     } catch (e) {
