@@ -68,6 +68,12 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     super.dispose();
   }
 
+  int _compareByName(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final aName = (a['name'] as String? ?? '').trim();
+    final bName = (b['name'] as String? ?? '').trim();
+    return aName.compareTo(bName);
+  }
+
   void _filterInspectors(String query) {
     if (_selectedCompanyId == null) {
       setState(() {
@@ -79,7 +85,8 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     final inspectorsInCompany = _allInspectors.where((inspector) {
       final companyId = inspector['companyId'] as String?;
       return companyId == _selectedCompanyId;
-    }).toList();
+    }).toList()
+      ..sort(_compareByName);
 
     setState(() {
       if (query.isEmpty) {

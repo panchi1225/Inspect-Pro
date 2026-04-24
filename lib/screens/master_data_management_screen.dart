@@ -13,6 +13,12 @@ class MasterDataManagementScreen extends StatefulWidget {
 
 class _MasterDataManagementScreenState
     extends State<MasterDataManagementScreen> {
+  int _compareInspectorByName(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final aName = (a['name'] as String? ?? '').trim();
+    final bName = (b['name'] as String? ?? '').trim();
+    return aName.compareTo(bName);
+  }
+
   final FirestoreService _firestoreService = FirestoreService();
 
   List<String> _sites = [];
@@ -397,6 +403,10 @@ class _MasterDataManagementScreenState
       if (companyId != null && groupedInspectors.containsKey(companyId)) {
         groupedInspectors[companyId]!.add(inspector);
       }
+    }
+
+    for (final inspectors in groupedInspectors.values) {
+      inspectors.sort(_compareInspectorByName);
     }
 
     final orderedCompanyIds = [
