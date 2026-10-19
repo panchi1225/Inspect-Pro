@@ -1,8 +1,10 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'package:archive/archive.dart';
+import 'package:xml/xml.dart';
+import '../models/machine.dart';
+import '../data/rough_terrain_crane.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart' show rootBundle;
 import '../models/inspection_record.dart';
 import '../models/inspection_item.dart';
 import 'firestore_service.dart';
@@ -23,13 +25,15 @@ class WebExcelService {
     String? companyName,
     String? responsiblePerson,
     String? primeContractorInspector,
+    FirestoreService? dataSource,
+    void Function(List<int> bytes, String fileName)? output,
   }) async {
     try {
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📊 Web Excel生成開始（テンプレート方式）');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       
-      final firestoreService = FirestoreService();
+      final firestoreService = dataSource ?? FirestoreService();
       
       // 1. 重機情報を取得
       final machine = await firestoreService.getMachineById(machineId);
@@ -40,7 +44,8 @@ class WebExcelService {
       print('✅ 重機: ${machine.type} ${machine.model} ${machine.unitNumber}');
 
       // 2. 点検記録を取得
-      final inspectionData = await firestoreService.getInspections();
+      final inspectionData = await firestoreService.getMonthlyInspections(
+        machineId: machineId, year: year, month: month);
       final allRecords = inspectionData.map((data) {
         return InspectionRecord(
           id: data['id'] ?? '',
@@ -81,6 +86,44 @@ class WebExcelService {
       final items = await firestoreService.getInspectionItems(machine.typeId!);
       print('✅ 点検項目数: ${items.length}項目');
 
+      final excel = buildMonthlyWorkbook(machine: machine, items: items,
+        monthRecords: monthRecords, year: year, month: month, siteName: siteName,
+        companyName: companyName, responsiblePerson: responsiblePerson,
+        primeContractorInspector: primeContractorInspector);
+      final fileBytes = encodeWorkbook(excel,
+        roughTerrain: machine.typeId == RoughTerrainCrane.typeId);
+
+      String fileName = machine.typeId == RoughTerrainCrane.typeId
+          ? '$year年$month月_${machine.type}_${machine.model}_${machine.unitNumber}.xlsx'
+          : '${month}月度_${machine.type}_${machine.unitNumber}.xlsx';
+      if (output != null) { output(fileBytes, fileName); return fileName; }
+
+      if (kIsWeb) {
+        downloadExcelWeb(fileBytes, fileName);
+        print('✅ Webダウンロード開始: $fileName');
+        return fileName;
+      } else {
+        print('❌ この機能はWeb専用です');
+        return null;
+      }
+
+    } catch (e, stackTrace) {
+      print('❌ Excel生成エラー: $e');
+      print('Stack trace: $stackTrace');
+      return null;
+    }
+  }
+
+  /// Web出力とテストが共用する帳票生成。取得・保存方式は呼出元で扱う。
+  static Excel buildMonthlyWorkbook({
+    required Machine machine, required List<InspectionItem> items,
+    required List<InspectionRecord> monthRecords, required int year, required int month,
+    String? siteName, String? companyName, String? responsiblePerson,
+    String? primeContractorInspector,
+  }) {
+    final roughTerrain = machine.typeId == RoughTerrainCrane.typeId;
+    if (roughTerrain) items = RoughTerrainCrane.validateItems(items);
+    if (items.isEmpty) throw StateError('点検項目を取得できません');
       // 4. テンプレートExcelを読み込み
       print('📄 テンプレート読み込み開始');
       
@@ -154,12 +197,12 @@ class WebExcelService {
       
       // R3, R4: 機械種類ごとの法令記載
       final machineType = machine.type;
-      if (machineType == '油圧ショベル' || 
+      if (!roughTerrain && (machineType == '油圧ショベル' ||
           machineType == 'ブルドーザー' || 
           machineType == 'タイヤショベル' || 
           machineType == 'コンバインドローラー' || 
           machineType == '振動ローラー' || 
-          machineType == 'タイヤローラー') {
+          machineType == 'タイヤローラー')) {
         // R3: 【安衛則 第170条】
         _setCell(sheet, 'R3', '【安衛則 第170条】', fontSize: 14);
       } else if (machineType == '不整地運搬車') {
@@ -167,7 +210,7 @@ class WebExcelService {
         _setCell(sheet, 'R3', '【安衛則 第151条57】', fontSize: 14);
       }
       
-      if (machineType == '油圧ショベル') {
+      if (!roughTerrain && machineType == '油圧ショベル') {
         // R4: 【クレーン則 第78条】
         _setCell(sheet, 'R4', '【クレーン則 第78条】', fontSize: 14);
       }
@@ -288,7 +331,7 @@ class WebExcelService {
           for (var item in items) {
             if (resultRow > 23) break;
             
-            String value = '-';
+            String value = roughTerrain ? '未' : '-';
             String? bgColorHex;
             if (record.results.containsKey(item.code)) {
               bool isGood = record.results[item.code]!.isGood;
@@ -310,7 +353,11 @@ class WebExcelService {
       // ========================================
       _setCell(sheet, 'A24', '１．点検時', fontSize: 14, vAlign: VerticalAlign.Center);
       _setCell(sheet, 'B25', 'チェック記号', fontSize: 14);
-      _setCell(sheet, 'J24', '良好…○　要調整、修理…×（使用禁止）　・該当なし…－', fontSize: 14);
+      _setCell(sheet, 'AK27', '元請点検\n責任者\n確認欄', fontSize: 9, hAlign: HorizontalAlign.Center);
+    sheet.cell(CellIndex.indexByString('AK27')).cellStyle!.wrap = TextWrapping.WrapText;
+    _setCell(sheet, 'BL28', '元請点検\n責任者', fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
+    sheet.cell(CellIndex.indexByString('BL28')).cellStyle!.wrap = TextWrapping.WrapText;
+    _setCell(sheet, 'J24', '良好…○　要調整、修理…×（使用禁止）　・該当なし…－', fontSize: 14);
       _setCell(sheet, 'J25', '調整または補修したとき…×を○で囲む', fontSize: 14);
       _setCell(sheet, 'A26', '２．元請点検責任者は毎月上旬・中旬・下旬毎に１回は点検状況を確認すること。', fontSize: 14, vAlign: VerticalAlign.Center);
       
@@ -400,31 +447,99 @@ class WebExcelService {
       
       print('✅ Excel生成完了');
       
-      // ファイル保存（encode()を使って自動ダウンロードを防ぐ）
-      var fileBytes = excel.encode();
-      if (fileBytes == null) {
-        print('❌ Excelファイルのバイト変換に失敗');
-        return null;
-      }
-      
-      String fileName = '${month}月度_${machine.type}_${machine.unitNumber}.xlsx';
-      
-      if (kIsWeb) {
-        downloadExcelWeb(fileBytes, fileName);
-        print('✅ Webダウンロード開始: $fileName');
-        return fileName;
-      } else {
-        print('❌ この機能はWeb専用です');
-        return null;
-      }
-      
-    } catch (e, stackTrace) {
-      print('❌ Excel生成エラー: $e');
-      print('Stack trace: $stackTrace');
-      return null;
-    }
+      if (roughTerrain) _formatRoughTerrain(sheet, year, month);
+      return excel;
   }
-  
+
+  static List<int> encodeWorkbook(Excel excel, {required bool roughTerrain}) {
+    final bytes = excel.encode();
+    if (bytes == null) throw StateError('Excelの生成に失敗しました');
+    if (!roughTerrain) return bytes;
+    // excel 4.xには印刷設定APIがないため、生成したOOXMLに印刷設定を追加する。
+    final archive = ZipDecoder().decodeBytes(bytes);
+    final result = Archive();
+    for (final file in archive.files) {
+      var content = file.content as List<int>;
+      if (file.name == 'xl/worksheets/sheet1.xml') {
+        final xml = XmlDocument.parse(utf8.decode(content));
+        final root = xml.rootElement;
+        final props = root.getElement('sheetPr') ?? XmlElement(XmlName('sheetPr'));
+        if (props.parent == null) root.children.insert(0, props);
+        final fit = props.getElement('pageSetUpPr') ?? XmlElement(XmlName('pageSetUpPr'));
+        fit.setAttribute('fitToPage', '1');
+        if (fit.parent == null) props.children.add(fit);
+        final margins = root.getElement('pageMargins') ?? XmlElement(XmlName('pageMargins'));
+        for (final key in ['left', 'right', 'top', 'bottom']) {
+          margins.setAttribute(key, '0.2');
+        }
+        margins.setAttribute('header', '0'); margins.setAttribute('footer', '0');
+        if (margins.parent == null) root.children.add(margins);
+        final setup = root.getElement('pageSetup') ?? XmlElement(XmlName('pageSetup'));
+        for (final entry in {'paperSize': '9', 'orientation': 'landscape',
+          'fitToWidth': '1', 'fitToHeight': '1'}.entries) {
+          setup.setAttribute(entry.key, entry.value);
+        }
+        if (setup.parent == null) root.children.add(setup);
+        content = utf8.encode(xml.toXmlString());
+      } else if (file.name == 'xl/workbook.xml') {
+        final xml = XmlDocument.parse(utf8.decode(content));
+        final root = xml.rootElement;
+        final names = root.getElement('definedNames') ?? XmlElement(XmlName('definedNames'));
+        names.children.add(XmlElement(XmlName('definedName'), [
+          XmlAttribute(XmlName('name'), '_xlnm.Print_Area'),
+          XmlAttribute(XmlName('localSheetId'), '0')], [XmlText("'月次点検表'!\$A\$1:\$BQ\$31")]));
+        if (names.parent == null) {
+          final calc = root.getElement('calcPr');
+          if (calc == null) { root.children.add(names); }
+          else { root.children.insert(root.children.indexOf(calc), names); }
+        }
+        content = utf8.encode(xml.toXmlString());
+      }
+      result.addFile(ArchiveFile(file.name, content.length, content));
+    }
+    return ZipEncoder().encode(result)!;
+  }
+
+  static void _formatRoughTerrain(Sheet sheet, int year, int month) {
+    void merge(String from, String to) => sheet.merge(
+      CellIndex.indexByString(from), CellIndex.indexByString(to));
+    merge('F1', 'BQ1');
+    merge('A3', 'AL3'); merge('A4', 'AL4');
+    _setCell(sheet, 'A3', RoughTerrainCrane.starLegend, fontSize: 14);
+    _setCell(sheet, 'A4', RoughTerrainCrane.additionalLegend, fontSize: 14);
+    merge('A5', 'AL5');
+    _setCell(sheet, 'A5', '$year年$month月度 ラフタークレーン 作業開始前点検表', fontSize: 20, bold: true);
+    merge('A6', 'BQ6');
+    _setCell(sheet, 'A6', '日常点検の月次集計（クレーン則第78条）。月例自主検査の代替ではありません。', fontSize: 12);
+    merge('A7', 'BQ7');
+    _setCell(sheet, 'A7', '異常時は使用中止・責任者へ報告し補修等を実施（第80条）。記録の保存は使用許可ではありません。', fontSize: 12);
+    for (var row = 10; row <= 23; row++) {
+      merge('B$row', 'Q$row'); merge('R$row', 'AL$row');
+      // 結合後に下辺全体へ罫線を戻す（Excelでは左上セルだけの罫線は延長されない）。
+      for (var col = 1; col <= 37; col++) {
+        _addBorder(sheet, col, row - 1, bottom: true);
+      }
+      for (final col in ['B', 'R']) {
+        final cell = sheet.cell(CellIndex.indexByString('$col$row'));
+        cell.cellStyle!.wrap = TextWrapping.WrapText;
+      }
+    }
+    // 複数行の長い氏名も列外へはみ出さない。
+    for (var col = 38; col <= 68; col++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 23));
+      cell.cellStyle ??= CellStyle();
+      cell.cellStyle!.wrap = TextWrapping.WrapText;
+    }
+    merge('A24', 'H24'); merge('B25', 'H25');
+    merge('J24', 'AK24'); merge('J25', 'AK25'); merge('A26', 'AK26');
+    _setCell(sheet, 'AK27', '元請点検\n責任者\n確認欄', fontSize: 9, hAlign: HorizontalAlign.Center);
+    sheet.cell(CellIndex.indexByString('AK27')).cellStyle!.wrap = TextWrapping.WrapText;
+    _setCell(sheet, 'BL28', '元請点検\n責任者', fontSize: 11, bold: true, hAlign: HorizontalAlign.Center);
+    sheet.cell(CellIndex.indexByString('BL28')).cellStyle!.wrap = TextWrapping.WrapText;
+    _setCell(sheet, 'J24', '良好：○  不良：×（使用禁止）  空欄：記録なし', fontSize: 12);
+    _setCell(sheet, 'J25', '未：未点検。非装備部分と未点検は区別し、14項目すべて確認。', fontSize: 11);
+  }
+
   /// セルに値とスタイルを設定
   static void _setCell(
     Sheet sheet,

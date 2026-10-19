@@ -1,3 +1,4 @@
+import '../data/rough_terrain_crane.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/machine.dart';
 import '../models/inspection_item.dart';
@@ -7,9 +8,10 @@ import '../models/inspection_record.dart';
 class FirestoreService {
   static final FirestoreService _instance = FirestoreService._internal();
   factory FirestoreService() => _instance;
-  FirestoreService._internal();
+  FirestoreService._internal() : _firestore = FirebaseFirestore.instance;
+  FirestoreService.forTesting(this._firestore);
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
   static const String _defaultCompanyName = '松浦建設株式会社';
 
   // ============================================================
@@ -447,6 +449,11 @@ class FirestoreService {
     for (final doc in allDocs) {
       final data = doc.data();
       if (data['isActive'] != true) continue;
+      // ラフターは専用の追加処理で管理し、画面表示では補完しない。
+      if (data['typeId'] == RoughTerrainCrane.typeId ||
+          data['type'] == RoughTerrainCrane.typeName) {
+        continue;
+      }
       final type = '${data['type'] ?? ''}'.trim();
       final model = '${data['model'] ?? ''}'.trim();
       if (type.isEmpty || model.isEmpty) continue;
@@ -523,10 +530,11 @@ class FirestoreService {
       }
 
       print('✅ 点検項目変換完了: ${items.length}件');
-      return items;
+      return typeId == RoughTerrainCrane.typeId
+          ? RoughTerrainCrane.validateItems(items) : items;
     } catch (e) {
       print('❌ 点検項目取得エラー: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -548,6 +556,10 @@ class FirestoreService {
     String? memo,
   }) async {
     try {
+      if (machineTypeId == RoughTerrainCrane.typeId) {
+        final items = await getInspectionItems(machineTypeId);
+        if (!RoughTerrainCrane.complete(items, results)) return false;
+      }
       final resultsMap = results.map((key, value) => MapEntry(key, value.toMap()));
 
       await _firestore.collection('inspections').add({
@@ -571,6 +583,24 @@ class FirestoreService {
       print('❌ 点検記録保存エラー: $e');
       return false;
     }
+  }
+
+  /// 帳票は対象機・対象月を直接取得する（一覧の1000件制限を受けない）。
+  Future<List<Map<String, dynamic>>> getMonthlyInspections({
+    required String machineId, required int year, required int month,
+  }) async {
+    final snapshot = await _firestore.collection('inspections')
+        .where('machineId', isEqualTo: machineId).get();
+    final prefix = '$year-${month.toString().padLeft(2, '0')}-';
+    return snapshot.docs.where((d) => '${d.data()['date']}'.startsWith(prefix))
+        .map((d) => {...d.data(), 'id': d.id}).toList();
+  }
+
+  /// 帳票ダイアログの現場別候補も一覧の1000件制限から独立させる。
+  Future<List<Map<String, dynamic>>> getSiteInspections(String siteName) async {
+    final snapshot = await _firestore.collection('inspections')
+        .where('siteName', isEqualTo: siteName).get();
+    return snapshot.docs.map((d) => {...d.data(), 'id': d.id}).toList();
   }
 
   /// 点検記録を取得（管理画面用）

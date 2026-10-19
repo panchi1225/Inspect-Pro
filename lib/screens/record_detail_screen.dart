@@ -1,3 +1,4 @@
+import '../data/rough_terrain_crane.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -10,14 +11,15 @@ import '../services/auth_service.dart';
 class RecordDetailScreen extends StatefulWidget {
   final InspectionRecord record;
 
-  const RecordDetailScreen({super.key, required this.record});
+  final FirestoreService? dataSource;
+  const RecordDetailScreen({super.key, required this.record, this.dataSource});
 
   @override
   State<RecordDetailScreen> createState() => _RecordDetailScreenState();
 }
 
 class _RecordDetailScreenState extends State<RecordDetailScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService = widget.dataSource ?? FirestoreService();
   List<InspectionItem> _items = [];
   bool _isLoading = true;
 
@@ -140,6 +142,13 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 )
               : Column(
         children: [
+          if (widget.record.machineTypeId == RoughTerrainCrane.typeId)
+            const ExpansionTile(
+              title: Text('ラフターの点検区分・確認上の注意'),
+              subtitle: Text('${RoughTerrainCrane.starLegend}\n${RoughTerrainCrane.additionalLegend}'),
+              children: [SizedBox(height: 160, child: SingleChildScrollView(
+                padding: EdgeInsets.all(16), child: Text(RoughTerrainCrane.guidance)))],
+            ),
           // ヘッダー情報
           Container(
             width: double.infinity,

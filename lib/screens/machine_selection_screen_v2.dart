@@ -1,14 +1,17 @@
+import '../data/rough_terrain_crane.dart';
 import 'package:flutter/material.dart';
 import '../models/machine.dart';
 import '../services/firestore_service.dart';
 import 'inspection_input_screen.dart';
 
 class MachineSelectionScreenV2 extends StatefulWidget {
+  final FirestoreService? dataSource;
   final String siteName;
   final String inspectorName;
 
   const MachineSelectionScreenV2({
     super.key,
+    this.dataSource,
     required this.siteName,
     required this.inspectorName,
   });
@@ -18,7 +21,7 @@ class MachineSelectionScreenV2 extends StatefulWidget {
 }
 
 class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService = widget.dataSource ?? FirestoreService();
   
   List<Machine> _allMachines = [];
   bool _isLoading = true;
@@ -89,7 +92,8 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
         .map((m) => m.unitNumber)
         .toList();
     
-    return units;
+    return _selectedType == RoughTerrainCrane.typeName
+        ? RoughTerrainCrane.sortedUnits(units) : units;
   }
 
   // マスタデータから対応するMachineオブジェクトを検索
@@ -147,6 +151,7 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
           siteName: widget.siteName,
           inspectorName: widget.inspectorName,
           machine: machine,
+          dataSource: widget.dataSource,
         ),
       ),
     );

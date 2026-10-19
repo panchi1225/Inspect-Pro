@@ -7,3 +7,8 @@ class ExcelDownload {
     // 現時点ではWeb専用機能として実装しています
   }
 }
+
+// WebサービスのVMテストでも条件付きimportを解決する。
+void downloadExcelWeb(List<int> bytes, String fileName) {
+  throw UnsupportedError("Web download requires a browser");
+}

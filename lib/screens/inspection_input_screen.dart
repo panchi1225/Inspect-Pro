@@ -1,3 +1,4 @@
+import '../data/rough_terrain_crane.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
@@ -7,12 +8,14 @@ import '../models/inspection_record.dart';
 import '../services/firestore_service.dart';
 
 class InspectionInputScreen extends StatefulWidget {
+  final FirestoreService? dataSource;
   final String siteName;
   final String inspectorName;
   final Machine machine;
 
   const InspectionInputScreen({
     super.key,
+    this.dataSource,
     required this.siteName,
     required this.inspectorName,
     required this.machine,
@@ -23,7 +26,7 @@ class InspectionInputScreen extends StatefulWidget {
 }
 
 class _InspectionInputScreenState extends State<InspectionInputScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService = widget.dataSource ?? FirestoreService();
   final Map<String, InspectionResult> _results = {};
   final Map<String, TextEditingController> _memoControllers = {};
   final ImagePicker _picker = ImagePicker();
@@ -223,6 +226,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
   }
 
   Future<void> _saveInspection() async {
+    if (_isLoading || _items.isEmpty) return;
     // 未入力項目をチェック
     final uninputItems = <String>[];
     for (final item in _items) {
@@ -299,7 +303,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
 
     try {
       // Base64形式でそのまま保存
-      await _firestoreService.saveInspection(
+      final saved = await _firestoreService.saveInspection(
         siteName: widget.siteName,
         inspectorName: widget.inspectorName,
         machineId: widget.machine.id,
@@ -311,6 +315,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
         results: _results,
       );
 
+      if (!saved) throw StateError('保存に失敗しました。通信と点検マスタを確認してください。');
       print('✅ 点検記録を保存しました');
     } catch (e) {
       print('❌ 保存エラー: $e');
@@ -374,7 +379,12 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildInspectionForm(),
+          : _items.isEmpty
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Text('点検項目を読み込めません。保存できません。'),
+                  TextButton(onPressed: _loadInspectionItems, child: const Text('再読込')),
+                ]))
+              : _buildInspectionForm(),
     );
   }
 
@@ -444,7 +454,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
                             ),
                           ),
                           Text(
-                            '${widget.machine.type} ${widget.machine.unitNumber}',
+                            '${widget.machine.type} ${widget.machine.model} ${widget.machine.unitNumber}',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -504,6 +514,13 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
             ),
           ),
 
+          if (widget.machine.typeId == RoughTerrainCrane.typeId)
+            const ExpansionTile(
+              title: Text('ラフターの点検区分・確認上の注意'),
+              subtitle: Text('${RoughTerrainCrane.starLegend}\n${RoughTerrainCrane.additionalLegend}'),
+              children: [SizedBox(height: 160, child: SingleChildScrollView(
+                padding: EdgeInsets.all(16), child: Text(RoughTerrainCrane.guidance)))],
+            ),
           // 一括入力ボタン
           Padding(
             padding: const EdgeInsets.all(16),
