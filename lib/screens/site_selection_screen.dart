@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
-import 'inspector_selection_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../navigation/app_navigation.dart';
+import '../navigation/app_back_button.dart';
 
 class SiteSelectionScreen extends StatefulWidget {
-  const SiteSelectionScreen({super.key});
+  final FirestoreService? dataSource;
+  const SiteSelectionScreen({super.key, this.dataSource});
 
   @override
   State<SiteSelectionScreen> createState() => _SiteSelectionScreenState();
 }
 
 class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService = widget.dataSource ?? FirestoreService();
   String? _selectedSite;
   final TextEditingController _searchController = TextEditingController();
   List<String> _allSites = [];
@@ -30,12 +33,14 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
 
     try {
       final sites = await _firestoreService.getMasterData('sites');
+      if (!mounted) return;
       setState(() {
         _allSites = sites;
         _filteredSites = _allSites;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       print('❌ 現場リスト読み込みエラー: $e');
       setState(() {
         _allSites = [];
@@ -67,6 +72,7 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('現場を選択'),
         elevation: 0,
       ),
@@ -219,14 +225,8 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => InspectorSelectionScreen(
-                              siteName: _selectedSite!,
-                            ),
-                          ),
-                        );
+                        context.go(AppPaths.inspectors,
+                          extra: AppRouteData(siteName: _selectedSite!));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,

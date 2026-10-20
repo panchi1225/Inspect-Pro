@@ -2,7 +2,9 @@ import '../data/rough_terrain_crane.dart';
 import 'package:flutter/material.dart';
 import '../models/machine.dart';
 import '../services/firestore_service.dart';
-import 'inspection_input_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../navigation/app_navigation.dart';
+import '../navigation/app_back_button.dart';
 
 class MachineSelectionScreenV2 extends StatefulWidget {
   final FirestoreService? dataSource;
@@ -45,11 +47,13 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
     try {
       await _firestoreService.ensureAllModelsHaveInitialTenUnits();
       final machines = await _firestoreService.getMachines();
+      if (!mounted) return;
       setState(() {
         _allMachines = machines;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       print('❌ 重機データ読み込みエラー: $e');
       setState(() {
         _isLoading = false;
@@ -144,17 +148,8 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => InspectionInputScreen(
-          siteName: widget.siteName,
-          inspectorName: widget.inspectorName,
-          machine: machine,
-          dataSource: widget.dataSource,
-        ),
-      ),
-    );
+    context.go(AppPaths.input, extra: AppRouteData(siteName: widget.siteName,
+      inspectorName: widget.inspectorName, machine: machine));
   }
 
   void _showSnackBar(String message) {
@@ -259,6 +254,7 @@ class _MachineSelectionScreenV2State extends State<MachineSelectionScreenV2> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('重機選択'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,

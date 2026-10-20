@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import '../models/inspection_record.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
-import 'record_detail_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../navigation/app_navigation.dart';
+import '../navigation/app_back_button.dart';
 // Excel出力ダイアログ（Web専用機能だが、ビルドには含める）
 import 'excel_export_dialog.dart';
 
@@ -189,6 +191,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(AuthService().currentRole?.screenTitle ?? '点検データ'),
         elevation: 0,
       ),
@@ -205,6 +208,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        initialValue: _filterSite,
                         decoration: const InputDecoration(
                           labelText: '現場',
                           filled: true,
@@ -244,6 +248,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        initialValue: _filterMachineType,
                         decoration: const InputDecoration(
                           labelText: '重機種類',
                           filled: true,
@@ -409,22 +414,19 @@ class _AdminScreenState extends State<AdminScreen> {
                           elevation: 2,
                           borderRadius: BorderRadius.circular(12),
                           child: InkWell(
-                            onTap: () async {
-                              final deleted = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      RecordDetailScreen(record: record, dataSource: widget.dataSource),
-                                ),
-                              );
-                              
-                              // 詳細画面で削除された場合はリストを更新
-                              if (deleted == true) {
-                                setState(() {
-                                  _records.removeWhere((r) => r.id == record.id);
-                                  _applyFilters();
-                                });
-                              }
+                            onTap: () {
+                              final owner = WeakReference(this);
+                              context.go(AppPaths.detail, extra: AppRouteData(
+                                record: record,
+                                onRecordDeleted: () {
+                                  final state = owner.target;
+                                  if (state == null || !state.mounted) return;
+                                  state.setState(() {
+                                    state._records.removeWhere((r) => r.id == record.id);
+                                    state._applyFilters();
+                                  });
+                                },
+                              ));
                             },
                             borderRadius: BorderRadius.circular(12),
                             child: Container(

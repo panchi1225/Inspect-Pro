@@ -4,24 +4,28 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/database_service.dart';
 import 'services/cloud_sync_service.dart';
-import 'screens/login_screen.dart';
+import 'navigation/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Firebase初期化
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     print('✅ Firebase初期化完了');
-    print('📊 Firebase Project: ${DefaultFirebaseOptions.currentPlatform.projectId}');
-    print('🌐 Firebase App ID: ${DefaultFirebaseOptions.currentPlatform.appId}');
+    print(
+      '📊 Firebase Project: ${DefaultFirebaseOptions.currentPlatform.projectId}',
+    );
+    print(
+      '🌐 Firebase App ID: ${DefaultFirebaseOptions.currentPlatform.appId}',
+    );
   } catch (e) {
     print('❌ Firebase initialization error: $e');
     print('⚠️ アプリは起動しますが、Firestoreへの接続ができません');
   }
-  
+
   // データベースの初期化
   try {
     await DatabaseService.init();
@@ -29,7 +33,7 @@ void main() async {
     // 初期化エラーが発生してもアプリは起動
     print('Database initialization error: $e');
   }
-  
+
   // クラウド同期サービスを開始
   try {
     final cloudSync = CloudSyncService();
@@ -38,16 +42,30 @@ void main() async {
   } catch (e) {
     print('⚠️ Cloud sync initialization warning: $e');
   }
-  
+
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final _router = createAppRouter();
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
+      routerConfig: _router,
       title: 'Inspect Pro',
       debugShowCheckedModeBanner: false,
       // 日本語ロケール設定（DatePickerの日本語化）
@@ -57,20 +75,14 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('ja', 'JP'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('ja', 'JP'), Locale('en', 'US')],
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
           brightness: Brightness.light,
         ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
+        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
         cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(
@@ -78,7 +90,6 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginScreen(),
     );
   }
 }

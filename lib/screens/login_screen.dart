@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/auth_service.dart';
-import 'home_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../navigation/app_navigation.dart';
 
 /// ログイン画面 - 点検者/管理者を選択してPASS入力
 class LoginScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loadVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
     setState(() {
       _version = 'Ver. ${packageInfo.version}';
     });
@@ -69,12 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       // ログイン成功 - ホーム画面へ遷移
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
-          ),
-        );
+        context.go(AppPaths.home);
       }
     } else {
       // ログイン失敗
