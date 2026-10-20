@@ -42,3 +42,21 @@ python scripts/add_rough_terrain_crane.py --project inspect-pro-22e0a --apply --
 
 `order` のない既存項目を除外しないよう、Firestoreに全機種共通の `orderBy('order')` は追加しない。
 ラフターだけ文書IDで整列し、14個の固定ID・★区分・空の名称／ポイントがないことを検証する。
+
+## 既存Firebase CLI認証を使用する場合
+
+ADCを優先する。ADC未設定でも既にFirebase CLIへログインしている管理環境では、任意の認証アダプターを使用できる。
+PythonのFirestore依存に加え、Node.jsとFirebase CLIが必要。Firebase CLI内部APIを使用するため、CLI更新後はまずdry-runで動作を確認する。
+
+```powershell
+# PowerShell例。トークン値を表示・コピーしない。
+$env:NODE_PATH = (npm root -g)
+node scripts/run_rough_terrain_with_firebase_cli.cjs --project inspect-pro-22e0a --output dry-run.json
+node scripts/run_rough_terrain_with_firebase_cli.cjs --project inspect-pro-22e0a --apply --output apply.json
+```
+
+このアダプターは既存CLIログインの短期アクセストークンを子Pythonプロセスのメモリへ渡すだけで、同じ追加スクリプトを実行する。
+認証情報をコマンド引数・コード・実行結果・ファイルに出さない。子プロセスでは認証環境変数もすぐ除去する。
+
+2026-10-20の本番反映：dry-run45件予定、初回45件追加、再実行0件、各15台・14項目を読戻し確認済み。
+既存のマスタ・点検項目444文書の追加前後ハッシュは同一。アプリコードのmainへのマージ・公開は別途必要。

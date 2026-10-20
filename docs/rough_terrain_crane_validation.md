@@ -17,6 +17,7 @@
 |`lib/services/excel_download_mobile.dart`|条件付きimportがVM上でも解決するよう非Webのダウンロード関数を追加。モバイル出力機能の新規実装はしない。|
 |`scripts/data/rough_terrain_crane.json`|指定14項目・短文の正本。1～5がtrue、6～14がfalse。|
 |`scripts/add_rough_terrain_crane.py`|専用の安全な追加処理。既定dry-run、ADC、競合検査、原子的create、再実行時の重複防止、JSON結果。|
+|`scripts/run_rough_terrain_with_firebase_cli.cjs`|既存Firebase CLIログインをメモリ内の短期認証としてPython追加処理へ渡す任意アダプター。鍵・トークンを出力・保存しない。|
 |`scripts/requirements-rough-terrain.txt`|専用追加処理のFirestore SDK依存。|
 |`scripts/test_add_rough_terrain_crane.py`|追加件数、既存保全、衝突、部分再開の単体テスト。|
 |`scripts/test_rough_terrain_emulator.py`|ローカルEmulatorで実スクリプトのdry-run・初回・再実行・競合中止を検証。|
@@ -77,9 +78,18 @@ WindowsではEmulatorの環境変数をPowerShellの `$env:FIRESTORE_EMULATOR_HO
 
 ## 本番反映状況と未検証事項
 
-本番 `inspect-pro-22e0a` への読取専用dry-runは、Application Default Credentialsが見つからず接続前に失敗。
-本番Firestoreの追加・上書き・削除はいずれも実施していない。本番の既存typeId衝突やルール・権限は未確認。
-本番への適用は [専用手順](rough_terrain_crane_master.md) のdry-run成功後に行う。既存の削除インポートは実行していない。
+本番 `inspect-pro-22e0a` / `(default)` に反映済み。
+ADC未設定による最初のdry-run失敗後、既存Firebase CLIログインを確認し、短期認証をメモリ内だけでPythonスクリプトへ渡して実行した。認証情報のコード埋込み・出力・ファイル保存は行っていない。
+
+- 本番dry-run：成功、45文書予定、競合なし。
+- 本番初回apply：成功、45文書追加（テンプレート1・項目14・機械30）。
+- 本番再実行：成功、追加0文書。
+- 読戻し：25t・50t各15台、双方1～15号機の数値順、rtc_01～rtc_14、★5件。
+- 既存の機械・テンプレート・項目444文書：追加前後のSHA-256が一致（`f85fb7143d3fa8ca1d14f8e808ecfff2085071bcecc5805559638d1318395cfa`）。
+- 保存済み点検記録を変更する書込は行っていない。削除インポートも実行していない。
+
+本番の実行結果は `production-master-dry-run.json`、`production-master-apply.json`、`production-master-repeat.json`、`production-master-before.json`、`production-master-after.json` に保存した。
+再実行手順は [専用手順](rough_terrain_crane_master.md) を参照。
 
 本番データでの画面保存・再読込、公開中アプリでのブラウザダウンロード、実カメラ撮影・写真アップロード操作は未検証。
 保存・詳細・帳票の確認には模擬DBと検証データを使用し、マスタ追加処理にはローカルFirestore Emulatorも使用した。
