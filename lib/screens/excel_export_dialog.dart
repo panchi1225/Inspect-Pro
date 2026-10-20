@@ -104,7 +104,7 @@ class _ExcelExportDialogState extends State<ExcelExportDialog> {
       print('🔍 現場選択: $_selectedSite');
       
       // Firestoreから点検記録を取得
-      final inspectionData = await _firestoreService.getInspections();
+      final inspectionData = await _firestoreService.getSiteInspections(_selectedSite!);
       print('📦 取得した点検記録: ${inspectionData.length}件');
       
       // Map<String, dynamic>からInspectionRecordに変換

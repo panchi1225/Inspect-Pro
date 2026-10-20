@@ -1,0 +1,108 @@
+{
+  "typeId": "rough_terrain_crane",
+  "name": "ラフタークレーン",
+  "models": [
+    "25t",
+    "50t"
+  ],
+  "items": [
+    {
+      "code": "rtc_01",
+      "name": "巻過防止装置",
+      "checkpoint": "主巻・補巻の停止・警報機能は正常か。",
+      "isRequired": true,
+      "order": 1
+    },
+    {
+      "code": "rtc_02",
+      "name": "過負荷警報・防止装置",
+      "checkpoint": "警報・停止機能と作業状態の設定は適正か。",
+      "isRequired": true,
+      "order": 2
+    },
+    {
+      "code": "rtc_03",
+      "name": "その他の警報装置",
+      "checkpoint": "ホーン等、装備された警報は正常か。",
+      "isRequired": true,
+      "order": 3
+    },
+    {
+      "code": "rtc_04",
+      "name": "ブレーキ",
+      "checkpoint": "巻上げ・旋回・走行・駐車の制動は正常か。",
+      "isRequired": true,
+      "order": 4
+    },
+    {
+      "code": "rtc_05",
+      "name": "クラッチ・コントローラー",
+      "checkpoint": "クラッチ及び各操作装置の機能は正常か。",
+      "isRequired": true,
+      "order": 5
+    },
+    {
+      "code": "rtc_06",
+      "name": "ウインチロープ・シーブ",
+      "checkpoint": "断線・摩耗・変形、巻取り・端末に異常はないか。",
+      "isRequired": false,
+      "order": 6
+    },
+    {
+      "code": "rtc_07",
+      "name": "フック・外れ止め",
+      "checkpoint": "損傷・変形はなく、外れ止めは確実に閉じるか。",
+      "isRequired": false,
+      "order": 7
+    },
+    {
+      "code": "rtc_08",
+      "name": "ブーム・ジブ・取付部",
+      "checkpoint": "亀裂・変形、ピン・ボルトの緩みや脱落はないか。",
+      "isRequired": false,
+      "order": 8
+    },
+    {
+      "code": "rtc_09",
+      "name": "油圧装置",
+      "checkpoint": "シリンダ・ホース等に損傷・油漏れはないか。",
+      "isRequired": false,
+      "order": 9
+    },
+    {
+      "code": "rtc_10",
+      "name": "アウトリガ",
+      "checkpoint": "張出し・固定・ジャッキの作動と保持は正常か。",
+      "isRequired": false,
+      "order": 10
+    },
+    {
+      "code": "rtc_11",
+      "name": "地盤・敷板・車体水平",
+      "checkpoint": "支持地盤・敷板・接地状態と車体水平は適正か。",
+      "isRequired": false,
+      "order": 11
+    },
+    {
+      "code": "rtc_12",
+      "name": "操向装置・タイヤ",
+      "checkpoint": "操向は正常か。空気圧・損傷・締結に異常はないか。",
+      "isRequired": false,
+      "order": 12
+    },
+    {
+      "code": "rtc_13",
+      "name": "原動機・油水量・計器",
+      "checkpoint": "始動・作動、油水量・漏れ・計器に異常はないか。",
+      "isRequired": false,
+      "order": 13
+    },
+    {
+      "code": "rtc_14",
+      "name": "灯火・視界・運転席",
+      "checkpoint": "灯火・視界・ベルトは良好で、操作の支障はないか。",
+      "isRequired": false,
+      "order": 14
+    }
+  ]
+}

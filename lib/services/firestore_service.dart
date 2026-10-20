@@ -1,3 +1,4 @@
+import '../data/rough_terrain_crane.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/machine.dart';
 import '../models/inspection_item.dart';
@@ -7,9 +8,10 @@ import '../models/inspection_record.dart';
 class FirestoreService {
   static final FirestoreService _instance = FirestoreService._internal();
   factory FirestoreService() => _instance;
-  FirestoreService._internal();
+  FirestoreService._internal() : _firestore = FirebaseFirestore.instance;
+  FirestoreService.forTesting(this._firestore);
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
   static const String _defaultCompanyName = '松浦建設株式会社';
 
   // ============================================================
@@ -447,6 +449,11 @@ class FirestoreService {
     for (final doc in allDocs) {
       final data = doc.data();
       if (data['isActive'] != true) continue;
+      // ラフターは専用の追加処理で管理し、画面表示では補完しない。
+      if (data['typeId'] == RoughTerrainCrane.typeId ||
+          data['type'] == RoughTerrainCrane.typeName) {
+        continue;
+      }
       final type = '${data['type'] ?? ''}'.trim();
       final model = '${data['model'] ?? ''}'.trim();
       if (type.isEmpty || model.isEmpty) continue;
@@ -523,10 +530,11 @@ class FirestoreService {
       }
 
       print('✅ 点検項目変換完了: ${items.length}件');
-      return items;
+      return typeId == RoughTerrainCrane.typeId
+          ? RoughTerrainCrane.validateItems(items) : items;
     } catch (e) {
       print('❌ 点検項目取得エラー: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -548,6 +556,10 @@ class FirestoreService {
     String? memo,
   }) async {
     try {
+      if (machineTypeId == RoughTerrainCrane.typeId) {
+        final items = await getInspectionItems(machineTypeId);
+        if (!RoughTerrainCrane.complete(items, results)) return false;
+      }
       final resultsMap = results.map((key, value) => MapEntry(key, value.toMap()));
 
       await _firestore.collection('inspections').add({
@@ -573,21 +585,46 @@ class FirestoreService {
     }
   }
 
+  /// 帳票は対象機・対象月を直接取得する（一覧の1000件制限を受けない）。
+  Future<List<Map<String, dynamic>>> getMonthlyInspections({
+    required String machineId, required int year, required int month,
+  }) async {
+    final snapshot = await _firestore.collection('inspections')
+        .where('machineId', isEqualTo: machineId).get();
+    final prefix = '$year-${month.toString().padLeft(2, '0')}-';
+    return snapshot.docs.where((d) => '${d.data()['date']}'.startsWith(prefix))
+        .map((d) => {...d.data(), 'id': d.id}).toList();
+  }
+
+  /// 帳票ダイアログの現場別候補も一覧の1000件制限から独立させる。
+  Future<List<Map<String, dynamic>>> getSiteInspections(String siteName) async {
+    final snapshot = await _firestore.collection('inspections')
+        .where('siteName', isEqualTo: siteName).get();
+    return snapshot.docs.map((d) => {...d.data(), 'id': d.id}).toList();
+  }
+
   /// 点検記録を取得（管理画面用）
   Future<List<Map<String, dynamic>>> getInspections() async {
     try {
-      // シンプルなクエリ（インデックス不要）
-      final snapshot = await _firestore
-          .collection('inspections')
-          .limit(1000)
-          .get();
+      // 文書ID順のカーソルで全ページを取得する。日付フィールドの欠落した
+      // 過去記録も除外せず、500件は1回の取得単位であって総件数の上限ではない。
+      const pageSize = 500;
+      final inspections = <Map<String, dynamic>>[];
+      QueryDocumentSnapshot<Map<String, dynamic>>? lastDocument;
+      while (true) {
+        Query<Map<String, dynamic>> query = _firestore.collection('inspections')
+            .orderBy(FieldPath.documentId);
+        if (lastDocument != null) {
+          query = query.startAfterDocument(lastDocument);
+        }
+        final snapshot = await query.limit(pageSize).get();
+        inspections.addAll(snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}));
+        if (snapshot.docs.length < pageSize) {
+          break;
+        }
+        lastDocument = snapshot.docs.last;
+      }
 
-      final inspections = snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-      
       // クライアント側でソート（日付の降順）
       inspections.sort((a, b) {
         final aDate = a['date'] as String?;
@@ -601,7 +638,8 @@ class FirestoreService {
       return inspections;
     } catch (e) {
       print('❌ 点検記録取得エラー: $e');
-      return [];
+      // 部分取得を総件数として表示しない。呼出元で取得失敗を表示する。
+      rethrow;
     }
   }
 
