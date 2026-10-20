@@ -1,5 +1,6 @@
 import '../data/rough_terrain_crane.dart';
 import 'package:flutter/material.dart';
+import '../navigation/app_back_button.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -12,7 +13,8 @@ class RecordDetailScreen extends StatefulWidget {
   final InspectionRecord record;
 
   final FirestoreService? dataSource;
-  const RecordDetailScreen({super.key, required this.record, this.dataSource});
+  final VoidCallback? onDeleted;
+  const RecordDetailScreen({super.key, required this.record, this.dataSource, this.onDeleted});
 
   @override
   State<RecordDetailScreen> createState() => _RecordDetailScreenState();
@@ -43,12 +45,14 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       final items = await _firestoreService.getInspectionItems(
         widget.record.machineTypeId,
       );
+      if (!mounted) return;
       setState(() {
         _items = items;
         _isLoading = false;
       });
     } catch (e) {
       print('❌ 点検項目取得エラー: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -107,6 +111,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('点検記録詳細'),
         elevation: 0,
         actions: [
@@ -529,7 +534,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       if (success) {
         // 削除成功 → 前の画面に戻る
         if (context.mounted) {
-          Navigator.pop(context, true); // trueを返して削除されたことを通知
+          widget.onDeleted?.call();
+          popAppPage(context, true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('✅ 点検データを削除しました'),

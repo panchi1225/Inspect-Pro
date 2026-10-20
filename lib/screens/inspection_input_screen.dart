@@ -1,5 +1,8 @@
 import '../data/rough_terrain_crane.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../navigation/app_navigation.dart';
+import '../navigation/app_back_button.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import '../models/machine.dart';
@@ -63,6 +66,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
     try {
       print('📦 点検項目を取得中... (typeId: $typeId)');
       final items = await _firestoreService.getInspectionItems(typeId);
+      if (!mounted) return;
       print('✅ 点検項目取得完了: ${items.length}件');
       
       setState(() {
@@ -71,6 +75,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
       });
     } catch (e) {
       print('❌ 点検項目読み込みエラー: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('点検項目の読み込みに失敗しました: $e')),
       );
@@ -344,10 +349,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context); // ダイアログを閉じる
-              Navigator.pop(context); // 点検画面を閉じる
-              Navigator.pop(context); // 重機選択画面を閉じる
-              Navigator.pop(context); // 点検者選択画面を閉じる
-              Navigator.pop(context); // 現場選択画面を閉じる（ホーム画面に戻る）
+              context.go(AppPaths.home);
             },
             child: const Text('完了'),
           ),
@@ -360,6 +362,7 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('点検入力'),
         elevation: 0,
         actions: [

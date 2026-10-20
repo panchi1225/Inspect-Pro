@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../navigation/app_back_button.dart';
 import '../services/firestore_service.dart';
 
 /// マスタデータ管理画面
 /// 現場名、点検者名、所有会社名の追加・削除を管理
 class MasterDataManagementScreen extends StatefulWidget {
-  const MasterDataManagementScreen({super.key});
+  final FirestoreService? dataSource;
+  const MasterDataManagementScreen({super.key, this.dataSource});
 
   @override
   State<MasterDataManagementScreen> createState() =>
@@ -19,7 +21,7 @@ class _MasterDataManagementScreenState
     return aName.compareTo(bName);
   }
 
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService = widget.dataSource ?? FirestoreService();
 
   List<String> _sites = [];
   List<Map<String, dynamic>> _inspectors = [];
@@ -45,6 +47,7 @@ class _MasterDataManagementScreenState
       final inspectors = await _firestoreService.getInspectorsWithCompany();
       final companies = await _firestoreService.getMasterData('companies');
       final companyOptions = await _firestoreService.getCompanyOptions();
+      if (!mounted) return;
 
       setState(() {
         _sites = sites;
@@ -54,6 +57,7 @@ class _MasterDataManagementScreenState
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       print('❌ マスタデータ読み込みエラー: $e');
       setState(() {
         _isLoading = false;
@@ -354,6 +358,7 @@ class _MasterDataManagementScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('マスタデータ管理'),
         elevation: 0,
       ),

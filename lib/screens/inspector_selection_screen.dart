@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
-import 'machine_selection_screen_v2.dart';
+import 'package:go_router/go_router.dart';
+import '../navigation/app_navigation.dart';
+import '../navigation/app_back_button.dart';
 
 class InspectorSelectionScreen extends StatefulWidget {
   final String siteName;
+  final FirestoreService? dataSource;
 
   const InspectorSelectionScreen({
     super.key,
     required this.siteName,
+    this.dataSource,
   });
 
   @override
@@ -16,7 +20,7 @@ class InspectorSelectionScreen extends StatefulWidget {
 }
 
 class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService = widget.dataSource ?? FirestoreService();
   String? _selectedInspector;
   String? _selectedCompanyId;
   String? _selectedCompanyName;
@@ -41,6 +45,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     try {
       final inspectors = await _firestoreService.getInspectorsWithCompany();
       final companies = await _firestoreService.getCompanyOptions();
+      if (!mounted) return;
       final companyList = companies.where((company) {
         final companyId = company['id'] ?? '';
         return inspectors.any((inspector) => inspector['companyId'] == companyId);
@@ -53,6 +58,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       print('❌ 点検者リスト読み込みエラー: $e');
       setState(() {
         _allInspectors = [];
@@ -115,6 +121,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('点検者を選択'),
         elevation: 0,
       ),
@@ -346,15 +353,8 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
                       onPressed: _selectedInspector == null
                           ? null
                           : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MachineSelectionScreenV2(
-                              siteName: widget.siteName,
-                              inspectorName: _selectedInspector!,
-                            ),
-                          ),
-                        );
+                        context.go(AppPaths.machines, extra: AppRouteData(
+                          siteName: widget.siteName, inspectorName: _selectedInspector!));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,

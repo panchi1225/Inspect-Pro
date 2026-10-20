@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'dart:html' as html;
-import 'site_selection_screen.dart';
-import 'admin_screen.dart';
-import 'master_data_management_screen.dart';
-import 'login_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../navigation/app_navigation.dart';
+import '../platform/browser_actions.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
 
@@ -27,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
     setState(() {
       _version = 'Ver. ${packageInfo.version}';
     });
@@ -35,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openManual() {
     if (kIsWeb) {
       // Web版: 新しいタブでPDFを開く
-      html.window.open('assets/documents/manual.pdf', '_blank');
+      openBrowserTab('assets/documents/manual.pdf');
     } else {
       // モバイル版: ダイアログで案内
       showDialog(
@@ -151,13 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ElevatedButton(
                       onPressed: () {
                         authService.logout();
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                          (route) => false,
-                        );
+                        context.go(AppPaths.login);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
@@ -254,12 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     subtitle: '日々の点検を入力する',
                     color: Colors.orange,
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SiteSelectionScreen(),
-                        ),
-                      );
+                      context.go(AppPaths.sites);
                     },
                   ),
                   const SizedBox(height: 20),
@@ -276,12 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         : 'データ照会(閲覧のみ)',
                     color: Colors.blueGrey,
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminScreen(),
-                        ),
-                      );
+                      context.go(AppPaths.records);
                     },
                   ),
                   
@@ -295,12 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       subtitle: '現場名・点検者名・会社名の管理',
                       color: Colors.teal,
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MasterDataManagementScreen(),
-                          ),
-                        );
+                        context.go(AppPaths.masters);
                       },
                     ),
                   ],
