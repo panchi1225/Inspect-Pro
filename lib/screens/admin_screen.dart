@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import '../models/inspection_record.dart';
-import '../services/cloud_sync_service.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import 'record_detail_screen.dart';
@@ -10,14 +9,17 @@ import 'record_detail_screen.dart';
 import 'excel_export_dialog.dart';
 
 class AdminScreen extends StatefulWidget {
-  const AdminScreen({super.key});
+  final FirestoreService? dataSource;
+  const AdminScreen({super.key, this.dataSource});
 
   @override
   State<AdminScreen> createState() => _AdminScreenState();
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService = widget.dataSource ?? FirestoreService();
+  bool _isLoading = true;
+  String? _loadError;
   List<InspectionRecord> _records = [];
   List<InspectionRecord> _filteredRecords = [];
   List<String> _availableSites = [];
@@ -39,6 +41,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> _loadMasterData() async {
     try {
       final sites = await _firestoreService.getMasterData('sites');
+      if (!mounted) return;
       setState(() {
         _availableSites = sites;
       });
@@ -48,6 +51,7 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> _loadRecords() async {
+    setState(() { _isLoading = true; _loadError = null; });
     try {
       // Firestoreから直接取得
       final inspectionData = await _firestoreService.getInspections();
@@ -74,7 +78,9 @@ class _AdminScreenState extends State<AdminScreen> {
         );
       }).toList();
       
+      if (!mounted) return;
       setState(() {
+        _isLoading = false;
         _records = records;
         if (_records.isNotEmpty) {
           print('✅ Sample record: ${_records.first.siteName}, ${_records.first.machineType}');
@@ -87,11 +93,11 @@ class _AdminScreenState extends State<AdminScreen> {
         }
       });
     } catch (e) {
-      // データ取得エラー時は空リストを使用
       print('❌ Failed to load records: $e');
+      if (!mounted) return;
       setState(() {
-        _records = [];
-        _applyFilters();
+        _isLoading = false;
+        _loadError = '点検記録の読み込みに失敗しました';
       });
     }
   }
@@ -177,6 +183,8 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     final authService = AuthService();
     final dateFormat = DateFormat('yyyy/MM/dd');
+    final countsAvailable = !_isLoading && _loadError == null;
+    final pendingCount = _isLoading ? '読込中' : '取得失敗';
     final machineTypes = _records.map((r) => r.machineType).toSet().toList();
 
     return Scaffold(
@@ -317,13 +325,13 @@ class _AdminScreenState extends State<AdminScreen> {
               children: [
                 _buildStatCard(
                   '総件数',
-                  _filteredRecords.length.toString(),
+                  countsAvailable ? _filteredRecords.length.toString() : pendingCount,
                   Icons.list_alt,
                   Colors.blue,
                 ),
                 _buildStatCard(
                   '今月',
-                  _filteredRecords
+                  !countsAvailable ? pendingCount : _filteredRecords
                       .where((r) =>
                           r.inspectionDate.month == DateTime.now().month &&
                           r.inspectionDate.year == DateTime.now().year)
@@ -334,7 +342,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
                 _buildStatCard(
                   '今日',
-                  _filteredRecords
+                  !countsAvailable ? pendingCount : _filteredRecords
                       .where((r) =>
                           r.inspectionDate.day == DateTime.now().day &&
                           r.inspectionDate.month == DateTime.now().month &&
@@ -350,7 +358,16 @@ class _AdminScreenState extends State<AdminScreen> {
 
           // 記録リスト
           Expanded(
-            child: _filteredRecords.isEmpty
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _loadError != null
+                    ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text(_loadError!),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(onPressed: _loadRecords,
+                          icon: const Icon(Icons.refresh), label: const Text('再読み込み')),
+                      ]))
+                    : _filteredRecords.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -397,7 +414,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      RecordDetailScreen(record: record),
+                                      RecordDetailScreen(record: record, dataSource: widget.dataSource),
                                 ),
                               );
                               
@@ -536,9 +553,10 @@ class _AdminScreenState extends State<AdminScreen> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton.extended(
-            onPressed: () {
+            onPressed: _isLoading ? null : () async {
               // データを再読み込み
-              _loadRecords();
+              await _loadRecords();
+              if (!context.mounted || _loadError != null) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('✅ データを再読み込みしました (${_filteredRecords.length}件)'),
@@ -693,6 +711,7 @@ class _AdminScreenState extends State<AdminScreen> {
             const SizedBox(height: 8),
             Text(
               value,
+              key: ValueKey('inspection-stat-$label'),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,

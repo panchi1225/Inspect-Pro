@@ -606,18 +606,25 @@ class FirestoreService {
   /// 点検記録を取得（管理画面用）
   Future<List<Map<String, dynamic>>> getInspections() async {
     try {
-      // シンプルなクエリ（インデックス不要）
-      final snapshot = await _firestore
-          .collection('inspections')
-          .limit(1000)
-          .get();
+      // 文書ID順のカーソルで全ページを取得する。日付フィールドの欠落した
+      // 過去記録も除外せず、500件は1回の取得単位であって総件数の上限ではない。
+      const pageSize = 500;
+      final inspections = <Map<String, dynamic>>[];
+      QueryDocumentSnapshot<Map<String, dynamic>>? lastDocument;
+      while (true) {
+        Query<Map<String, dynamic>> query = _firestore.collection('inspections')
+            .orderBy(FieldPath.documentId);
+        if (lastDocument != null) {
+          query = query.startAfterDocument(lastDocument);
+        }
+        final snapshot = await query.limit(pageSize).get();
+        inspections.addAll(snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}));
+        if (snapshot.docs.length < pageSize) {
+          break;
+        }
+        lastDocument = snapshot.docs.last;
+      }
 
-      final inspections = snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-      
       // クライアント側でソート（日付の降順）
       inspections.sort((a, b) {
         final aDate = a['date'] as String?;
@@ -631,7 +638,8 @@ class FirestoreService {
       return inspections;
     } catch (e) {
       print('❌ 点検記録取得エラー: $e');
-      return [];
+      // 部分取得を総件数として表示しない。呼出元で取得失敗を表示する。
+      rethrow;
     }
   }
 
