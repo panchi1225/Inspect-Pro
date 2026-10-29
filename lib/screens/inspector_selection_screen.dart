@@ -3,6 +3,7 @@ import '../services/firestore_service.dart';
 import 'package:go_router/go_router.dart';
 import '../navigation/app_navigation.dart';
 import '../navigation/app_back_button.dart';
+import '../widgets/master_name_registration_dialog.dart';
 
 class InspectorSelectionScreen extends StatefulWidget {
   final String siteName;
@@ -46,14 +47,9 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
       final inspectors = await _firestoreService.getInspectorsWithCompany();
       final companies = await _firestoreService.getCompanyOptions();
       if (!mounted) return;
-      final companyList = companies.where((company) {
-        final companyId = company['id'] ?? '';
-        return inspectors.any((inspector) => inspector['companyId'] == companyId);
-      }).toList();
-
       setState(() {
         _allInspectors = inspectors;
-        _companies = companyList;
+        _companies = companies;
         _filteredInspectors = [];
         _isLoading = false;
       });
@@ -112,6 +108,39 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
       _selectedCompanyName = company['name'];
       _selectedInspector = null;
       _isChoosingCompany = false;
+      _searchController.clear();
+    });
+    _filterInspectors('');
+  }
+
+  Future<void> _addCompany() async {
+    final company = await showDialog<Map<String, String>>(
+      context: context, barrierDismissible: false,
+      builder: (_) => MasterNameRegistrationDialog(label: '会社名',
+        onRegister: _firestoreService.registerCompanyForInspection),
+    );
+    if (!mounted || company == null) return;
+    setState(() {
+      if (!_companies.any((c) => c['id'] == company['id'])) _companies.add(company);
+    });
+    _selectCompany(company);
+  }
+
+  Future<void> _addInspector() async {
+    final companyId = _selectedCompanyId;
+    if (companyId == null) return;
+    final inspector = await showDialog<Map<String, String>>(
+      context: context, barrierDismissible: false,
+      builder: (_) => MasterNameRegistrationDialog(label: '点検者名',
+        initialName: _searchController.text, companyName: _selectedCompanyName,
+        onRegister: (name) => _firestoreService.registerInspectorForInspection(
+          inspectorName: name, companyId: companyId)),
+    );
+    if (!mounted || inspector == null) return;
+    setState(() {
+      if (!_allInspectors.any((i) => i['id'] == inspector['id'])) _allInspectors.add(inspector);
+      _selectedInspector = inspector['name'];
+      _selectedCompanyName = inspector['companyName'];
       _searchController.clear();
     });
     _filterInspectors('');
@@ -226,6 +255,14 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
                 ),
               ),
 
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: SizedBox(width: double.infinity, child: OutlinedButton.icon(
+                onPressed: _isChoosingCompany ? _addCompany : _addInspector,
+                icon: Icon(_isChoosingCompany ? Icons.add_business : Icons.person_add),
+                label: Text(_isChoosingCompany ? '会社名を追加' : '点検者名を追加'),
+              )),
+            ),
             // 点検者リスト
             Expanded(
               child: _isChoosingCompany

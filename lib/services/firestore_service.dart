@@ -1,4 +1,6 @@
 import '../data/rough_terrain_crane.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/machine.dart';
 import '../models/inspection_item.dart';
@@ -801,7 +803,81 @@ class FirestoreService {
     }
   }
 
-  /// 点検者を追加（所属会社付き）
+  /// 点検フローから登録。既存の有効な会社のIDを維持する。
+  Future<Map<String, String>> registerCompanyForInspection(String companyName) async {
+    final name = companyName.trim();
+    if (name.isEmpty) throw ArgumentError('会社名を入力してください');
+    final companies = _firestore.collection('companies');
+    final existing = await companies.where('isActive', isEqualTo: true).get();
+    for (final doc in existing.docs) {
+      if ((doc.data()['name'] as String? ?? '').trim() == name) {
+        return {'id': doc.id, 'name': doc.data()['name'] as String};
+      }
+    }
+    final key = sha256.convert(utf8.encode(jsonEncode([name]))).toString();
+    final reference = companies.doc('entry_$key');
+    return _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(reference);
+      if (snapshot.exists) {
+        final data = snapshot.data()!;
+        if (data['isActive'] != true || data['name'] != name) {
+          throw StateError('同名の会社情報を確認できません。管理者に確認してください');
+        }
+      } else {
+        transaction.set(reference, {'name': name, 'isActive': true,
+          'createdAt': FieldValue.serverTimestamp()});
+      }
+      return {'id': reference.id, 'name': name};
+    });
+  }
+
+  /// 点検者は所属会社ごとに登録し、再操作・同時登録で重複させない。
+  Future<Map<String, String>> registerInspectorForInspection({
+    required String inspectorName,
+    required String companyId,
+  }) async {
+    final name = inspectorName.trim();
+    if (name.isEmpty) throw ArgumentError('点検者名を入力してください');
+    if (companyId.isEmpty) throw ArgumentError('会社を選択してください');
+    final inspectors = _firestore.collection('inspectors');
+    final existing = await inspectors.where('companyId', isEqualTo: companyId).get();
+    DocumentReference<Map<String, dynamic>>? existingReference;
+    for (final doc in existing.docs) {
+      final data = doc.data();
+      if (data['isActive'] == true && (data['name'] as String? ?? '').trim() == name) {
+        existingReference = doc.reference;
+        break;
+      }
+    }
+    final key = sha256.convert(utf8.encode(jsonEncode([companyId, name]))).toString();
+    final reference = existingReference ?? inspectors.doc('entry_$key');
+    return _firestore.runTransaction((transaction) async {
+      final company = await transaction.get(_firestore.collection('companies').doc(companyId));
+      final companyData = company.data();
+      final companyName = (companyData?['name'] as String? ?? '').trim();
+      if (!company.exists || companyData?['isActive'] != true || companyName.isEmpty) {
+        throw StateError('選択した会社を確認できません。会社を選び直してください');
+      }
+      final snapshot = await transaction.get(reference);
+      var savedName = name;
+      if (snapshot.exists) {
+        final data = snapshot.data()!;
+        if (data['isActive'] != true || data['companyId'] != companyId ||
+            (data['name'] as String? ?? '').trim() != name) {
+          throw StateError('同名の点検者情報を確認できません。管理者に確認してください');
+        }
+        savedName = data['name'] as String;
+      } else {
+        transaction.set(reference, {'name': name, 'companyId': companyId,
+          'companyName': companyName, 'isActive': true,
+          'createdAt': FieldValue.serverTimestamp()});
+      }
+      return {'id': reference.id, 'name': savedName,
+        'companyId': companyId, 'companyName': companyName};
+    });
+  }
+
+  /// マスタ管理画面の既存の点検者追加。
   Future<void> addInspectorWithCompany({
     required String inspectorName,
     required String companyId,
