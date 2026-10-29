@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/machine.dart';
 import '../models/inspection_item.dart';
 import '../models/inspection_record.dart';
+import 'selection_master_cache.dart';
 
 /// Firestoreサービス - Firebase Cloud Firestoreとの統合
 class FirestoreService {
@@ -15,6 +16,71 @@ class FirestoreService {
 
   final FirebaseFirestore _firestore;
   static const String _defaultCompanyName = '松浦建設株式会社';
+  final _inspectionCompanies = SelectionMasterCache<Map<String, String>>();
+  final _inspectionInspectors = SelectionMasterCache<Map<String, dynamic>>();
+
+  List<Map<String, String>>? get cachedInspectionCompanies => _inspectionCompanies.snapshot;
+  List<Map<String, dynamic>>? get cachedInspectionInspectors {
+    final inspectors = _inspectionInspectors.snapshot;
+    return inspectors == null ? null : _resolveInspectionCompanies(
+      inspectors, _inspectionCompanies.snapshot ?? []);
+  }
+
+  void invalidateInspectionSelectionCache() {
+    _inspectionCompanies.invalidate();
+    _inspectionInspectors.invalidate();
+  }
+
+  Future<List<Map<String, String>>> getInspectionCompanyOptions({bool refresh = false}) =>
+      _inspectionCompanies.load(() => _fetchCompanyOptions(serverOnly: true), refresh: refresh);
+
+  Future<void> preloadInspectionSelection() async {
+    try {
+      final companies = getInspectionCompanyOptions();
+      await getInspectionInspectors(companies: companies);
+    } catch (_) {
+      // The chooser retries failed reads and displays an actionable error.
+    }
+  }
+
+  /// Company and inspector reads start together; choosing a company never waits
+  /// for the inspector read. Legacy affiliations are resolved without writes.
+  Future<List<Map<String, dynamic>>> getInspectionInspectors({
+    required Future<List<Map<String, String>>> companies,
+    bool refresh = false,
+  }) async {
+    final inspectors = _inspectionInspectors.load(() async {
+      final snapshot = await _firestore.collection('inspectors')
+          .where('isActive', isEqualTo: true).get(const GetOptions(source: Source.server));
+      final docs = snapshot.docs.toList()..sort((a, b) {
+        final aTime = a.data()['createdAt'];
+        final bTime = b.data()['createdAt'];
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return -1;
+        if (bTime == null) return 1;
+        return aTime.compareTo(bTime);
+      });
+      return docs.map((d) => Map<String, dynamic>.unmodifiable({...d.data(), 'id': d.id})).toList();
+    }, refresh: refresh);
+    final results = await Future.wait<dynamic>([companies, inspectors]);
+    return _resolveInspectionCompanies(results[1] as List<Map<String, dynamic>>,
+      results[0] as List<Map<String, String>>);
+  }
+
+  List<Map<String, dynamic>> _resolveInspectionCompanies(
+    List<Map<String, dynamic>> inspectors, List<Map<String, String>> companies) {
+    final defaults = companies.firstWhere((c) => c['name'] == _defaultCompanyName,
+      orElse: () => <String, String>{});
+    return inspectors.map((data) {
+      final rawId = (data['companyId'] as String? ?? '').trim();
+      final companyId = rawId.isEmpty ? defaults['id'] : rawId;
+      final company = companies.firstWhere((c) => c['id'] == companyId,
+        orElse: () => <String, String>{});
+      final rawName = (data['companyName'] as String? ?? '').trim();
+      return {...data, 'companyId': companyId,
+        'companyName': rawName.isEmpty ? company['name'] : rawName};
+    }).toList();
+  }
 
   // ============================================================
   // マスタデータ管理
@@ -695,10 +761,18 @@ class FirestoreService {
   /// 所有会社の候補一覧（ID・名前）を取得
   Future<List<Map<String, String>>> getCompanyOptions() async {
     try {
+      return await _fetchCompanyOptions();
+    } catch (e) {
+      print('❌ 会社候補取得エラー: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, String>>> _fetchCompanyOptions({bool serverOnly = false}) async {
       final snapshot = await _firestore
           .collection('companies')
           .where('isActive', isEqualTo: true)
-          .get();
+          .get(GetOptions(source: serverOnly ? Source.server : Source.serverAndCache));
 
       final docs = snapshot.docs.toList();
       docs.sort((a, b) {
@@ -716,10 +790,6 @@ class FirestoreService {
           'name': (doc.data()['name'] ?? '') as String,
         };
       }).toList();
-    } catch (e) {
-      print('❌ 会社候補取得エラー: $e');
-      return [];
-    }
   }
 
   /// 点検者一覧（所属会社情報付き）を取得
@@ -777,6 +847,7 @@ class FirestoreService {
 
         if (updateCount > 0) {
           await batch.commit();
+          invalidateInspectionSelectionCache();
           print('✅ 点検者の既存データ移行: $updateCount 件を$_defaultCompanyNameへ補完');
         }
       }
@@ -811,12 +882,13 @@ class FirestoreService {
     final existing = await companies.where('isActive', isEqualTo: true).get();
     for (final doc in existing.docs) {
       if ((doc.data()['name'] as String? ?? '').trim() == name) {
+        invalidateInspectionSelectionCache();
         return {'id': doc.id, 'name': doc.data()['name'] as String};
       }
     }
     final key = sha256.convert(utf8.encode(jsonEncode([name]))).toString();
     final reference = companies.doc('entry_$key');
-    return _firestore.runTransaction((transaction) async {
+    final result = await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(reference);
       if (snapshot.exists) {
         final data = snapshot.data()!;
@@ -829,6 +901,8 @@ class FirestoreService {
       }
       return {'id': reference.id, 'name': name};
     });
+    invalidateInspectionSelectionCache();
+    return result;
   }
 
   /// 点検者は所属会社ごとに登録し、再操作・同時登録で重複させない。
@@ -851,7 +925,7 @@ class FirestoreService {
     }
     final key = sha256.convert(utf8.encode(jsonEncode([companyId, name]))).toString();
     final reference = existingReference ?? inspectors.doc('entry_$key');
-    return _firestore.runTransaction((transaction) async {
+    final result = await _firestore.runTransaction((transaction) async {
       final company = await transaction.get(_firestore.collection('companies').doc(companyId));
       final companyData = company.data();
       final companyName = (companyData?['name'] as String? ?? '').trim();
@@ -875,6 +949,8 @@ class FirestoreService {
       return {'id': reference.id, 'name': savedName,
         'companyId': companyId, 'companyName': companyName};
     });
+    invalidateInspectionSelectionCache();
+    return result;
   }
 
   /// マスタ管理画面の既存の点検者追加。
@@ -892,6 +968,7 @@ class FirestoreService {
         'createdAt': FieldValue.serverTimestamp(),
       });
       print('✅ inspectors「$inspectorName」を追加しました（会社: $companyName）');
+      invalidateInspectionSelectionCache();
     } catch (e) {
       print('❌ inspectors追加エラー: $e');
       throw Exception('inspectors追加に失敗しました: $e');
@@ -902,6 +979,7 @@ class FirestoreService {
   Future<void> deleteInspectorById(String inspectorId) async {
     try {
       await _firestore.collection('inspectors').doc(inspectorId).delete();
+      invalidateInspectionSelectionCache();
       print('✅ inspectors ID「$inspectorId」を削除しました');
     } catch (e) {
       print('❌ inspectors削除エラー: $e');
@@ -918,6 +996,9 @@ class FirestoreService {
         'createdAt': FieldValue.serverTimestamp(),
       });
       print('✅ $collectionName「$name」を追加しました');
+      if (collectionName == 'companies' || collectionName == 'inspectors') {
+        invalidateInspectionSelectionCache();
+      }
     } catch (e) {
       print('❌ $collectionName追加エラー: $e');
       throw Exception('$collectionName追加に失敗しました: $e');
@@ -938,6 +1019,9 @@ class FirestoreService {
       }
 
       await snapshot.docs.first.reference.delete();
+      if (collectionName == 'companies' || collectionName == 'inspectors') {
+        invalidateInspectionSelectionCache();
+      }
       print('✅ $collectionName「$name」を削除しました');
     } catch (e) {
       print('❌ $collectionName削除エラー: $e');

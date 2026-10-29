@@ -31,6 +31,12 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
   List<Map<String, dynamic>> _filteredInspectors = [];
   List<Map<String, String>> _companies = [];
   bool _isLoading = true;
+  bool _isLoadingInspectors = true;
+  bool _refreshing = false;
+  String? _companyError;
+  String? _inspectorsError;
+  final Map<String, Map<String, String>> _registeredCompanies = {};
+  final Map<String, Map<String, dynamic>> _registeredInspectors = {};
 
   @override
   void initState() {
@@ -38,30 +44,47 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     _loadInspectors();
   }
 
-  Future<void> _loadInspectors() async {
+  Future<void> _loadInspectors({bool refresh = false}) async {
+    if (_refreshing) return;
+    final cachedCompanies = _firestoreService.cachedInspectionCompanies;
+    final cachedInspectors = _firestoreService.cachedInspectionInspectors;
     setState(() {
-      _isLoading = true;
+      _refreshing = true;
+      _companyError = null;
+      _inspectorsError = null;
+      if (cachedCompanies != null) _companies = cachedCompanies;
+      if (cachedInspectors != null) _allInspectors = cachedInspectors;
+      _isLoading = cachedCompanies == null && _companies.isEmpty;
+      _isLoadingInspectors = cachedInspectors == null && _allInspectors.isEmpty;
     });
-
-    try {
-      final inspectors = await _firestoreService.getInspectorsWithCompany();
-      final companies = await _firestoreService.getCompanyOptions();
-      if (!mounted) return;
-      setState(() {
-        _allInspectors = inspectors;
-        _companies = companies;
-        _filteredInspectors = [];
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      print('❌ 点検者リスト読み込みエラー: $e');
-      setState(() {
-        _allInspectors = [];
-        _filteredInspectors = [];
-        _isLoading = false;
-      });
-    }
+    final companies = _firestoreService.getInspectionCompanyOptions(refresh: refresh);
+    final inspectors = _firestoreService.getInspectionInspectors(companies: companies, refresh: refresh);
+    await Future.wait<void>([
+      companies.then<void>((rows) {
+        if (!mounted) return;
+        setState(() {
+          _companies = {for (final row in rows) row['id']!: row,
+            ..._registeredCompanies}.values.toList();
+          _isLoading = false;
+        });
+      }).catchError((Object _) {
+        if (!mounted) return;
+        setState(() { _isLoading = false; _companyError = '会社一覧を取得できませんでした。'; });
+      }),
+      inspectors.then<void>((rows) {
+        if (!mounted) return;
+        setState(() {
+          _allInspectors = {for (final row in rows) row['id'] as String: row,
+            ..._registeredInspectors}.values.toList();
+          _isLoadingInspectors = false;
+        });
+        _filterInspectors(_searchController.text);
+      }).catchError((Object _) {
+        if (!mounted) return;
+        setState(() { _isLoadingInspectors = false; _inspectorsError = '点検者一覧を取得できませんでした。'; });
+      }),
+    ]);
+    if (mounted) setState(() { _refreshing = false; });
   }
 
   @override
@@ -121,6 +144,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     );
     if (!mounted || company == null) return;
     setState(() {
+      _registeredCompanies[company['id']!] = company;
       if (!_companies.any((c) => c['id'] == company['id'])) _companies.add(company);
     });
     _selectCompany(company);
@@ -138,7 +162,10 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     );
     if (!mounted || inspector == null) return;
     setState(() {
+      _registeredInspectors[inspector['id']!] = inspector;
       if (!_allInspectors.any((i) => i['id'] == inspector['id'])) _allInspectors.add(inspector);
+      _isLoadingInspectors = false;
+      _inspectorsError = null;
       _selectedInspector = inspector['name'];
       _selectedCompanyName = inspector['companyName'];
       _searchController.clear();
@@ -153,12 +180,22 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
         leading: const AppBackButton(),
         title: const Text('点検者を選択'),
         elevation: 0,
+        actions: [IconButton(tooltip: '会社・点検者を更新',
+          onPressed: _refreshing ? null : () => _loadInspectors(refresh: true),
+          icon: const Icon(Icons.refresh))],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
         child: Column(
           children: [
+            if (_companyError != null || _inspectorsError != null)
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(children: [
+                  Expanded(child: Text(_companyError ?? _inspectorsError!)),
+                  TextButton(onPressed: _refreshing ? null : () => _loadInspectors(refresh: true),
+                    child: const Text('再読込')),
+                ])),
             // 現場情報表示
             Container(
               width: double.infinity,
@@ -267,6 +304,10 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
             Expanded(
               child: _isChoosingCompany
                   ? _buildCompanyList()
+                  : _isLoadingInspectors && _filteredInspectors.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : _inspectorsError != null && _filteredInspectors.isEmpty
+                  ? const Center(child: Text('点検者を表示できません。再読込してください。'))
                   : _filteredInspectors.isEmpty
                   ? Center(
                       child: Column(
@@ -429,7 +470,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
     if (_companies.isEmpty) {
       return Center(
         child: Text(
-          '会社が登録されていません',
+          _companyError == null ? '会社が登録されていません' : '会社情報を表示できません。',
           style: TextStyle(
             fontSize: 16,
             color: Colors.grey.shade600,
@@ -484,7 +525,7 @@ class _InspectorSelectionScreenState extends State<InspectorSelectionScreen> {
                       ),
                     ),
                     Text(
-                      '$count名',
+                      _isLoadingInspectors ? '読込中' : _inspectorsError != null ? '—' : '$count名',
                       style: TextStyle(
                         color: Colors.grey.shade700,
                         fontWeight: FontWeight.w600,

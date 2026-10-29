@@ -24,6 +24,8 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
   void initState() {
     super.initState();
     _loadSites();
+    // 現場を選ぶ間に読み込み、次の会社選択で待たせない。
+    _firestoreService.preloadInspectionSelection();
   }
 
   Future<void> _loadSites() async {
