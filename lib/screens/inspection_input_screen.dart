@@ -1,4 +1,3 @@
-import '../data/rough_terrain_crane.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../navigation/app_navigation.dart';
@@ -517,13 +516,6 @@ class _InspectionInputScreenState extends State<InspectionInputScreen> {
             ),
           ),
 
-          if (widget.machine.typeId == RoughTerrainCrane.typeId)
-            const ExpansionTile(
-              title: Text('ラフターの点検区分・確認上の注意'),
-              subtitle: Text('${RoughTerrainCrane.starLegend}\n${RoughTerrainCrane.additionalLegend}'),
-              children: [SizedBox(height: 160, child: SingleChildScrollView(
-                padding: EdgeInsets.all(16), child: Text(RoughTerrainCrane.guidance)))],
-            ),
           // 一括入力ボタン
           Padding(
             padding: const EdgeInsets.all(16),
